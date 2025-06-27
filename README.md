@@ -74,8 +74,9 @@ Extract all the games from all the scores into one JSON file called
 ```
 
 We can run queries over the `all-games.json` file using one of my favourite
-programming languages, `jq`. For example, the following program gives the game
-that was scorigami for every score in NFL history:
+programming languages, `jq`. For example, the following program (from
+`sorted-scorigamis.jq`) gives the game that was scorigami for every score in NFL
+history:
 
 ```bash
 > jq 'reduce .[] as $item ({}; .[$item.boxscore_title] += [$item]) | map_values(min_by(.game_date))' all-games.json
@@ -124,3 +125,31 @@ visualization Jon has:
 When I run the commands above, I get a pannable, 3D view of the Scorigami map:
 
 ![Screenshot of the Scorigami map as rendered by OpenSCAD](docs/scorigami.png)
+
+To generate a video that shows the evolution of the Scorigami board over time,
+we have another program, `./scores-to-openscad-animated.jq`, which lets us
+choose the `nth_game` to show all the scores up to. We can render a frame for
+each `nth_game` using the `openscad` command line, and then stitch those frames
+together.
+
+We use `parallel` to run the frame generation using every core on the computer -
+this lets me generate the whole video in "only" 5 minutes.
+
+```bash
+> ./scores-to-openscad-animated.jq all-games.json > animated.scad
+> # A frame will be generated from the animated.scad program for every game in NFL history
+> ./render-all-frames animated.scad frames 17950
+> # About 5 minutes later, all frames are in the frames folder...
+> ls frames
+...
+```
+
+Finally, we can stitch together these frames to make a video using `ffmpeg`:
+
+```bash
+> ffmpeg -framerate 60 -pattern_type glob -i 'frames/*.png' -c:v libx264 -pix_fmt yuv420p video.mp4
+```
+
+The resulting video is very cool:
+
+![A video of the scorigami board over time with the z-axis representing how many games have been played in a given score](docs/animated.mp4)
