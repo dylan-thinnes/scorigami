@@ -22,18 +22,17 @@ def index_with($target):
   , "  ],"
   )
 , "];"
-, "level = $t * 100000;"
-, "underlevel = [
+, "nth_game = $t * 100000;"
+, "height_of_scores = [
   for (x = scores)
       [ x[0]
-      , concat([ for (i = x[1]) if (i[0] < level) i[1] ], [0])[0]
+      , concat([ for (i = x[1]) if (i[0] < nth_game) i[1] ], [0])[0]
       ]
 ];
-underlevel_ = [
-  for (x = underlevel) if (x[1] > 0) [x[0][0], x[0][1], x[1]]
+height_of_scores_nonzero = [
+  for (x = height_of_scores) if (x[1] > 0) [x[0][0], x[0][1], x[1]]
 ];
 color(\"lime\")
-for (xy = underlevel_) {
+for (xy = height_of_scores_nonzero) {
     translate([xy[1], xy[0], 0]) cube([1,1,xy[2]*0.5]);
 }"
-#| "translate([\(.pts_lose), \(.pts_win), 0]) cube([1,1,\(.nth_of_score * z_scale)]);"
