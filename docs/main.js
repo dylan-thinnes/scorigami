@@ -81,9 +81,8 @@ function activateColumns(cutoff) {
 
         boxscore.cube.geometry.dispose()
         boxscore.cube.geometry = boxscore.geometry;
-
-        scene.add(boxscore.cube);
       }
+      scene.add(boxscore.cube);
     }
   }
 }
