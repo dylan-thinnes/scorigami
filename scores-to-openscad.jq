@@ -9,12 +9,9 @@ def index_with($target):
 
   reduce .[] as $item ({}; .[$item.boxscore_title] += [$item])
 | map_values(sort_by(.game_date) | index_with("nth_of_score"))
-| [.[] | .[]] | sort_by(.game_date)
-| index_with("nth_of_history")
-| length as $count
-| "// length = \($count)"
-, "color(\"lime\") {"
+| map_values(max_by(.game_date))
+| "color(\"lime\") {"
 , ( .[]
-  | "translate([\(.pts_lose), \(.pts_win), \(.nth_of_score * z_scale)]) cube([1, 1, \(z_scale)]);"
+  | "translate([\(.pts_lose), \(.pts_win), 0]) cube([1, 1, \(.nth_of_score * z_scale)]);"
   )
 , "}"
