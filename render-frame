@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+scad=$1
+outdir=$2
+level=$3
+sed -E "s/^level.*/level = $level;/" "$scad" | \
+  openscad - -o $outdir/frame-$(printf "%05d" $level).png --camera=10.61,33.19,63.62,64.10,0.00,64.20,373.95 --imgsize=1000,1000
