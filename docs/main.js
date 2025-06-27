@@ -1,4 +1,4 @@
-import { allGames } from '/all-games.js';
+import { allGames } from './all-games.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
