@@ -15,6 +15,6 @@ def index_with($target):
 | "// length = \($count)"
 , "color(\"lime\") {"
 , ( .[]
-  | "translate([\(.pts_lose), \(.pts_win), \(.nth_of_score * z_scale)]) cube([1, 1, \(z_scale)]);"
+  | "if ($t >= \((.nth_of_history + 0.5) / 100000)) translate([\(.pts_lose), \(.pts_win), \(.nth_of_score * z_scale)]) cube([1, 1, \(z_scale)]);"
   )
 , "}"
