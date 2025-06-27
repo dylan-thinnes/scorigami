@@ -91,7 +91,6 @@ window.camera = camera;
 camera.position.x = -33;
 camera.position.y = 164;
 camera.position.z = 70;
-camera.lookAt(0,100,0);
 controls.update();
 
 let stepEl = document.getElementById('step');
@@ -104,9 +103,6 @@ function animate() {
 }
 renderer.setAnimationLoop( animate );
 
-document.addEventListener('keypress', e => {
-  iteration = 0;
-});
 stepEl.addEventListener('input', e => {
   let newIteration = parseInt(e.srcElement.value);
   if (!isNaN(newIteration)) iteration = newIteration;
