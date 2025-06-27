@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 mkdir -p games
-./all-score-pairs.py | while read win loss; do
+while read win loss; do
   wget "https://www.pro-football-reference.com/boxscores/game_scores_find.cgi?pts_win=$win&pts_lose=$loss" -O games/games-$win-$loss
-  sleep 5
+  sleep $1
 done
