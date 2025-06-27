@@ -16,11 +16,16 @@ const light2 = new THREE.PointLight(0xFFFFFF, 25000);
 light2.position.set(100, -100, -100);
 scene.add(light2);
 
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize( window.innerWidth, window.innerHeight );
-document.body.appendChild( renderer.domElement );
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
 
 const controls = new OrbitControls( camera, renderer.domElement );
 
@@ -62,7 +67,19 @@ for (let boxscore of Object.values(boxscores)) {
   initializeThreeJS(boxscore);
 }
 
+let lastCutoff = null;
 function activateColumns(cutoff) {
+  if (cutoff != lastCutoff) {
+    let gameInfoBox = document.getElementById("game");
+    if (cutoff == 0) {
+      gameInfoBox.innerHTML = "No game."
+    } else {
+      let cutoffGame = allGames[cutoff - 1];
+      gameInfoBox.innerHTML = `${cutoffGame.winner} v ${cutoffGame.loser}, ${cutoffGame.pts_win} - ${cutoffGame.pts_lose}, ${cutoffGame.game_date}${cutoffGame.nth_of_score === 1 ? " (SCORIGAMI)" : ""}`;
+    }
+    lastCutoff = cutoff;
+  }
+
   for (let boxscore of Object.values(boxscores)) {
     let lastMatchingGame = boxscore.games.findLast(game => game.nth_of_history <= cutoff);
     if (lastMatchingGame == null) {
@@ -95,9 +112,9 @@ controls.update();
 
 let stepEl = document.getElementById('step');
 
-let iteration = 17590;
+let iteration = stepEl.value || 17950;
 function animate() {
-  renderer.render( scene, camera );
+  renderer.render(scene, camera);
   controls.update();
   activateColumns(iteration);
 }
