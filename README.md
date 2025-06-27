@@ -152,4 +152,4 @@ Finally, we can stitch together these frames to make a video using `ffmpeg`:
 
 The resulting video is very cool:
 
-![A video of the scorigami board over time with the z-axis representing how many games have been played in a given score](docs/animated.avi)
+![A video of the scorigami board over time with the z-axis representing how many games have been played in a given score](docs/animated.avif)
