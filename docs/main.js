@@ -5,11 +5,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 window.allGames = allGames;
 
 const scene = new THREE.Scene();
-const color = new THREE.Color().setHex( 0xdddd88 );
+const color = new THREE.Color().setHex( 0xdddddd );
 scene.background = color;
 
 const light = new THREE.PointLight(0xFFFFFF, 50000);
-light.position.set(-100, 100, 100);
+light.position.set(-100, 100, 50);
 scene.add(light);
 
 const light2 = new THREE.PointLight(0xFFFFFF, 25000);
@@ -56,7 +56,7 @@ function initializeThreeJS (boxscore) {
     boxscore.geometry.parameters.depth / 2,
   );
 
-  boxscore.material = new THREE.MeshPhongMaterial( { color: 0x88ff88 } );
+  boxscore.material = new THREE.MeshPhongMaterial( { color: 0x44dd77 } );
   boxscore.cube = new THREE.Mesh(boxscore.geometry, boxscore.material);
 
   boxscore.cube.position.x += boxscore.games[0].pts_win;
