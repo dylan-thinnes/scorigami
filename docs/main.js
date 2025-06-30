@@ -49,7 +49,7 @@ for (let game of allGames) {
 window.boxscores = boxscores;
 
 function initializeThreeJS (boxscore) {
-  boxscore.geometry = new THREE.BoxGeometry(1, boxscore.games.length / 2, 1);
+  boxscore.geometry = new THREE.BoxGeometry(0.8, boxscore.games.length / 2, 0.8);
   boxscore.geometry.translate(
     boxscore.geometry.parameters.width / 2,
     boxscore.geometry.parameters.height / 2,
@@ -69,7 +69,7 @@ for (let boxscore of Object.values(boxscores)) {
 
 let gameCursor = {};
 
-gameCursor.geometry = new THREE.BoxGeometry(1, 100000 / 2, 1);
+gameCursor.geometry = new THREE.BoxGeometry(0.8, 100000 / 2, 0.8);
 gameCursor.geometry.translate(
   gameCursor.geometry.parameters.width / 2,
   gameCursor.geometry.parameters.height / 2,
