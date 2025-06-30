@@ -67,39 +67,68 @@ for (let boxscore of Object.values(boxscores)) {
   initializeThreeJS(boxscore);
 }
 
-let lastCutoff = null;
+let gameCursor = {};
+
+gameCursor.geometry = new THREE.BoxGeometry(1, 100000 / 2, 1);
+gameCursor.geometry.translate(
+  gameCursor.geometry.parameters.width / 2,
+  gameCursor.geometry.parameters.height / 2,
+  gameCursor.geometry.parameters.depth / 2,
+);
+
+gameCursor.material = new THREE.MeshPhongMaterial( { color: 0x00ffff } );
+gameCursor.cube = new THREE.Mesh(gameCursor.geometry, gameCursor.material);
+
+let lastCutoffGame = null;
 function activateColumns(cutoff) {
-  if (cutoff != lastCutoff) {
+  let cutoffGame = cutoff == 0 ? null : allGames[cutoff - 1];
+  if (cutoffGame != lastCutoffGame) {
     let gameInfoBox = document.getElementById("game");
-    if (cutoff == 0) {
+    if (cutoffGame == null) {
       gameInfoBox.innerHTML = "No game."
     } else {
-      let cutoffGame = allGames[cutoff - 1];
       gameInfoBox.innerHTML = `${cutoffGame.winner} v ${cutoffGame.loser}, ${cutoffGame.pts_win} - ${cutoffGame.pts_lose}, ${cutoffGame.game_date}${cutoffGame.nth_of_score === 1 ? " (SCORIGAMI)" : ""}`;
     }
-    lastCutoff = cutoff;
   }
+  lastCutoffGame = cutoffGame;
 
-  for (let boxscore of Object.values(boxscores)) {
-    let lastMatchingGame = boxscore.games.findLast(game => game.nth_of_history <= cutoff);
-    if (lastMatchingGame == null) {
-      if (boxscore.cube != null) {
+  if (cutoffGame == null) {
+    for (let boxscore of Object.values(boxscores)) {
+      scene.remove(boxscore.cube);
+    }
+    scene.remove(gameCursor.cube);
+  } else {
+    for (let boxscore of Object.values(boxscores)) {
+      let lastMatchingGame = boxscore.games.findLast(game => game.nth_of_history <= cutoffGame.nth_of_history);
+      if (lastMatchingGame == null) {
         scene.remove(boxscore.cube);
-      }
-    } else {
-      let height = lastMatchingGame.nth_of_score;
-      if (height / 2 != boxscore.geometry.parameters.height) {
-        boxscore.geometry = new THREE.BoxGeometry(1, height / 2, 1);
-        boxscore.geometry.translate(
-          boxscore.geometry.parameters.width / 2,
-          boxscore.geometry.parameters.height / 2,
-          boxscore.geometry.parameters.depth / 2,
-        );
+      } else {
+        let height = lastMatchingGame.nth_of_score;
+        if (lastMatchingGame.boxscore_title == cutoffGame.boxscore_title) {
+          height -= 1;
 
-        boxscore.cube.geometry.dispose()
-        boxscore.cube.geometry = boxscore.geometry;
+          if (lastMatchingGame.nth_of_score === 1) {
+            gameCursor.cube.position.x = cutoffGame.pts_win;
+            gameCursor.cube.position.y = height / 2;
+            gameCursor.cube.position.z = cutoffGame.pts_lose;
+            scene.add(gameCursor.cube);
+          } else {
+            scene.remove(gameCursor.cube);
+          }
+        }
+        if (height / 2 != boxscore.geometry.parameters.height) {
+          boxscore.geometry = new THREE.BoxGeometry(0.8, height / 2, 0.8);
+          boxscore.geometry.translate(
+            boxscore.geometry.parameters.width / 2,
+            boxscore.geometry.parameters.height / 2,
+            boxscore.geometry.parameters.depth / 2,
+          );
+
+          boxscore.cube.geometry.dispose()
+          boxscore.cube.geometry = boxscore.geometry;
+        }
+        scene.add(boxscore.cube);
       }
-      scene.add(boxscore.cube);
     }
   }
 }
@@ -120,7 +149,18 @@ function animate() {
 }
 renderer.setAnimationLoop( animate );
 
+function roundToNearestScorigami(cutoff) {
+  let roundedCutoff = cutoff;
+  while ((roundedCutoff == 0 || allGames[roundedCutoff - 1].nth_of_score != 1) && roundedCutoff < 17950) {
+    roundedCutoff += 1;
+  }
+  return roundedCutoff;
+}
+
 stepEl.addEventListener('input', e => {
   let newIteration = parseInt(e.srcElement.value);
-  if (!isNaN(newIteration)) iteration = newIteration;
+  if (!isNaN(newIteration)) {
+    iteration = roundToNearestScorigami(newIteration);
+    stepEl.value = iteration;
+  }
 });
