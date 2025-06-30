@@ -1,6 +1,7 @@
 import { allGames } from './all-games.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 
 window.allGames = allGames;
 
@@ -26,6 +27,7 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+renderer.setPixelRatio(window.devicePixelRatio);
 
 const controls = new OrbitControls( camera, renderer.domElement );
 
@@ -164,3 +166,32 @@ stepEl.addEventListener('input', e => {
     stepEl.value = iteration;
   }
 });
+
+for (let ii = 0; ii <= 73; ii++) {
+  let ctx = document.createElement("canvas").getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  ctx.canvas.width = 128;
+  ctx.canvas.height = 128;
+  ctx.fillStyle = "#FF0";
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 60px monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`${ii}`, 64, 64);
+
+  let texture = new THREE.CanvasTexture(ctx.canvas);
+  let material = new THREE.MeshBasicMaterial({ map: texture });
+  material.map.minFilter = material.map.magFilter = THREE.LinearFilter;
+  let geometry = new THREE.BoxGeometry(1.0, 0, 1.0);
+
+  let winAxisScoreBox = new THREE.Mesh(geometry, material);
+  winAxisScoreBox.position.x = ii + 0.5;
+  winAxisScoreBox.position.z = -0.5;
+  scene.add(winAxisScoreBox);
+
+  let loseAxisScoreBox = new THREE.Mesh(geometry, material);
+  loseAxisScoreBox.position.x = 74.5;
+  loseAxisScoreBox.position.z = ii + 0.5;
+  scene.add(loseAxisScoreBox);
+}
