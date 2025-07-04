@@ -5,6 +5,34 @@ import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer
 
 window.allGames = allGames;
 
+class PickHelper {
+  constructor() {
+    this.raycaster = new THREE.Raycaster();
+    this.pickedObject = null;
+    this.pickedObjectSavedColor = 0;
+  }
+  pick(normalizedPosition, scene, camera) {
+    // restore the color if there is a picked object
+    if (this.pickedObject) {
+      this.pickedObject.material.color.setHex(this.pickedObjectSavedColor);
+      this.pickedObject = undefined;
+    }
+
+    // cast a ray through the frustum
+    this.raycaster.setFromCamera(normalizedPosition, camera);
+    // get the list of objects the ray intersected
+    const intersectedObjects = this.raycaster.intersectObjects(scene.children);
+    if (intersectedObjects.length > 0) {
+      // pick the first object. It's the closest one
+      this.pickedObject = intersectedObjects[0].object;
+      // save its color
+      this.pickedObjectSavedColor = this.pickedObject.material.color.getHex();
+      // set its color to red
+      this.pickedObject.material.color.setHex(0xFF0000);
+    }
+  }
+}
+
 const scene = new THREE.Scene();
 const color = new THREE.Color().setHex( 0xdddddd );
 scene.background = color;
@@ -144,9 +172,11 @@ controls.update();
 let stepEl = document.getElementById('step');
 
 let iteration = stepEl.value || 17950;
+const pickHelper = new PickHelper();
 function animate() {
   renderer.render(scene, camera);
   controls.update();
+  pickHelper.pick(pickPosition, scene, camera);
   activateColumns(iteration);
 }
 renderer.setAnimationLoop( animate );
@@ -195,3 +225,33 @@ for (let ii = 0; ii <= 73; ii++) {
   loseAxisScoreBox.position.z = ii + 0.5;
   scene.add(loseAxisScoreBox);
 }
+
+const pickPosition = {x: 0, y: 0};
+clearPickPosition();
+
+function getCanvasRelativePosition(event) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  return {
+    x: (event.clientX - rect.left) * renderer.domElement.width  / rect.width,
+    y: (event.clientY - rect.top ) * renderer.domElement.height / rect.height,
+  };
+}
+ 
+function setPickPosition(event) {
+  const pos = getCanvasRelativePosition(event);
+  pickPosition.x = (pos.x / renderer.domElement.width ) *  2 - 1;
+  pickPosition.y = (pos.y / renderer.domElement.height) * -2 + 1;  // note we flip Y
+}
+ 
+function clearPickPosition() {
+  // unlike the mouse which always has a position
+  // if the user stops touching the screen we want
+  // to stop picking. For now we just pick a value
+  // unlikely to pick something
+  pickPosition.x = -100000;
+  pickPosition.y = -100000;
+}
+
+window.addEventListener('mousemove', setPickPosition);
+window.addEventListener('mouseout', clearPickPosition);
+window.addEventListener('mouseleave', clearPickPosition);
