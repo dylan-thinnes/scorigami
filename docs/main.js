@@ -3,6 +3,34 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 
+class Score {
+  constructor (games) {
+    this.games = games.toSorted(Games.compare);
+
+    let idx = 1;
+    for (let game of this.games) {
+      game.nth_of_score = idx;
+      idx++;
+    }
+  }
+
+  get isEternal () {
+    return this.games.length == 1;
+  }
+
+  get first () {
+    return this.games[0];
+  }
+
+  allBefore (game) {
+    return this.games.filter(g => Games.compare(g, game) < 1);
+  }
+
+  lastBefore (game) {
+    return this.games.findLast(g => g.nth_of_history <= game.nth_of_history);
+  }
+}
+
 const Games = {
   compare (game1, game2) {
     return game1.game_date == game2.game_date ? 0 : game1.game_date < game2.game_date ? -1 : 1;
@@ -29,19 +57,21 @@ const Games = {
     }
 
     // Initialize scores array, queried via `score` method
-    this.scores = {};
+    let scoreLists = {};
     for (let game of Games.all) {
-      if (this.scores[game.boxscore_title] == null) {
-        this.scores[game.boxscore_title] = {
-          games: []
-        };
+      if (scoreLists[game.boxscore_title] == null) {
+        scoreLists[game.boxscore_title] = [];
       }
-      let newLen = this.scores[game.boxscore_title].games.push(game);
-      game.nth_of_score = newLen;
+      scoreLists[game.boxscore_title].push(game);
+    }
+
+    this.scores = [];
+    for (let [scoreTitle, scoreList] of Object.entries(scoreLists)) {
+      this.scores[scoreTitle] = new Score(scoreList);
     }
   },
 
-  score (winning, losing) {
+  score (pts_win, pts_lose) {
     return this.scores[`${winning}_${losing}`];
   }
 };
@@ -79,9 +109,77 @@ class PickHelper {
 }
 
 const Scene = {
+  gaps: 0.1,
+  zScale: 0.25,
+
+  get columnWidth () {
+    return 1.0 - this.gaps * 2;
+  },
+
+  initializeScore (score) {
+    let geometry = new THREE.BoxGeometry(1, 1, 1); // placeholder until updateScoreGeometry runs
+    let material = new THREE.MeshPhongMaterial( { color: 0x44dd77 } );
+    score.cube = new THREE.Mesh(geometry, material);
+
+    this.updateScoreGeometry(score, this.columnWidth, score.games.length);
+    this.disableScore(score);
+  },
+
+  makeColumn (width, height) {
+    let geometry = new THREE.BoxGeometry(width, this.zScale * height, width);
+    geometry.translate(
+      geometry.parameters.width / 2,
+      geometry.parameters.height / 2,
+      geometry.parameters.depth / 2,
+    );
+    return geometry;
+  },
+
+  updateScoreGeometry (score, width, height) {
+    if (score.cube.geometry.parameters.height == height && score.cube.geometry.parameters.width == width) {
+      // Nothing to do
+    } else {
+      score.cube.geometry.dispose()
+      score.cube.geometry = this.makeColumn(width, height);
+      score.cube.position.x = score.games[0].pts_win + this.gaps;
+      score.cube.position.z = score.games[0].pts_lose + this.gaps;
+      this.enableScore(score);
+    }
+  },
+
+  enableScore (score) { this.scene.add(score.cube); },
+  disableScore (score) { this.scene.remove(score.cube); },
+
+  enableCursor (x, y, z) {
+    this.gameCursor.cube.position.x = x;
+    this.gameCursor.cube.position.y = y;
+    this.gameCursor.cube.position.z = z;
+    this.scene.add(this.gameCursor.cube);
+  },
+  disableCursor () { this.scene.remove(this.gameCursor.cube); },
+
+  makeTextTileMaterial (text) {
+      let ctx = document.createElement("canvas").getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+      ctx.canvas.width = 128;
+      ctx.canvas.height = 128;
+      ctx.fillStyle = "#FF0";
+      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 60px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, 64, 64);
+
+      let texture = new THREE.CanvasTexture(ctx.canvas);
+      let material = new THREE.MeshBasicMaterial({ map: texture });
+      material.map.minFilter = material.map.magFilter = THREE.LinearFilter;
+      return material;
+  },
+
   initialize () {
     this.scene = new THREE.Scene();
-    const color = new THREE.Color().setHex( 0xdddddd );
+    const color = new THREE.Color().setHex(0xdddddd);
     this.scene.background = color;
 
     const light = new THREE.PointLight(0xFFFFFF, 50000);
@@ -105,95 +203,121 @@ const Scene = {
     this.renderer.setPixelRatio(window.devicePixelRatio);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+
+    for (let score of Object.values(Games.scores)) {
+      Scene.initializeScore(score);
+    }
+
+    this.gameCursor = {};
+
+    this.gameCursor.geometry = new THREE.BoxGeometry(
+      this.columnWidth,
+      100000 / 2,
+      this.columnWidth
+    );
+    this.gameCursor.geometry.translate(
+      this.gameCursor.geometry.parameters.width / 2,
+      this.gameCursor.geometry.parameters.height / 2,
+      this.gameCursor.geometry.parameters.depth / 2,
+    );
+
+    this.gameCursor.material = new THREE.MeshPhongMaterial( { color: 0x00ffff } );
+    this.gameCursor.cube = new THREE.Mesh(
+      this.gameCursor.geometry,
+      this.gameCursor.material
+    );
+
+    this.winAxisScoreBoxes = [];
+    for (let ii = 0; ii <= 73; ii++) {
+      let material = this.makeTextTileMaterial(`${ii}`);
+      let geometry = new THREE.BoxGeometry(1.0, 0, 1.0);
+
+      let winAxisScoreBox = new THREE.Mesh(geometry, material);
+      winAxisScoreBox.position.x = ii + 0.5;
+      winAxisScoreBox.position.z = -0.5;
+      this.winAxisScoreBoxes.push(winAxisScoreBox);
+      Scene.scene.add(winAxisScoreBox);
+    }
+
+    this.loseAxisScoreBoxes = [];
+    for (let ii = 0; ii <= 51; ii++) {
+      let material = this.makeTextTileMaterial(`${ii}`);
+      let geometry = new THREE.BoxGeometry(1.0, 0, 1.0);
+
+      let loseAxisScoreBox = new THREE.Mesh(geometry, material);
+      loseAxisScoreBox.position.x = 74.5;
+      loseAxisScoreBox.position.z = ii + 0.5;
+      this.loseAxisScoreBoxes.push(loseAxisScoreBox);
+      Scene.scene.add(loseAxisScoreBox);
+    }
+
+    let impossibleTilesPositions = [
+      { pts_win: 1, pts_lose: 0, length: 1 },
+      { pts_win: 1, pts_lose: 1, length: 1 },
+      { pts_win: 2, pts_lose: 1, length: 1 },
+      { pts_win: 3, pts_lose: 1, length: 1 },
+      { pts_win: 4, pts_lose: 1, length: 1 },
+      { pts_win: 5, pts_lose: 1, length: 1 },
+      { pts_win: 7, pts_lose: 1, length: 1 },
+    ];
+    for (let pts_win = 0; pts_win < 51; pts_win++) {
+      impossibleTilesPositions.push({ pts_win, pts_lose: pts_win + 1, length: 51 - pts_win });
+    }
+
+    this.impossibleTiles = [];
+    for (let position of impossibleTilesPositions) {
+      let material = new THREE.MeshPhongMaterial( { color: 0xeeeeee } );
+      let geometry = new THREE.BoxGeometry(1.0, 0.1, position.length);
+
+      let greyTile = new THREE.Mesh(geometry, material);
+      greyTile.position.x = position.pts_win + 0.5;
+      greyTile.position.y = -0.1;
+      greyTile.position.z = position.pts_lose + position.length / 2;
+      this.impossibleTiles.push(greyTile);
+      Scene.scene.add(greyTile);
+    }
+  },
+
+  lastCutoffGame: null,
+
+  activateColumns (cutoff) {
+    let cutoffGame = cutoff == 0 ? null : Games.all[cutoff - 1];
+    if (cutoffGame != this.lastCutoffGame) {
+      let gameInfoBox = document.getElementById("game");
+      if (cutoffGame == null) {
+        gameInfoBox.innerHTML = "No game."
+      } else {
+        gameInfoBox.innerHTML = `${cutoffGame.winner} v ${cutoffGame.loser}, ${cutoffGame.pts_win} - ${cutoffGame.pts_lose}, ${cutoffGame.game_date}${cutoffGame.nth_of_score === 1 ? " (SCORIGAMI)" : ""}`;
+      }
+
+      if (cutoffGame == null) {
+        for (let score of Object.values(Games.scores)) {
+          this.disableScore(score);
+        }
+        this.disableScore();
+      } else {
+        for (let score of Object.values(Games.scores)) {
+          let lastGame = score.lastBefore(cutoffGame);
+          if (lastGame == null) {
+            this.disableScore(score);
+          } else {
+            if (lastGame == cutoffGame && lastGame.nth_of_score == 1) {
+              this.enableCursor(cutoffGame.pts_win, 0, cutoffGame.pts_lose);
+              this.disableScore(score);
+            } else {
+              let height = lastGame.nth_of_score;
+              this.updateScoreGeometry(score, this.columnWidth, height);
+              this.disableCursor();
+            }
+          }
+        }
+      }
+    }
+    this.lastCutoffGame = cutoffGame;
   }
 }
 
 Scene.initialize();
-
-function initializeThreeJS (score) {
-  score.geometry = new THREE.BoxGeometry(0.8, score.games.length / 2, 0.8);
-  score.geometry.translate(
-    score.geometry.parameters.width / 2,
-    score.geometry.parameters.height / 2,
-    score.geometry.parameters.depth / 2,
-  );
-
-  score.material = new THREE.MeshPhongMaterial( { color: 0x44dd77 } );
-  score.cube = new THREE.Mesh(score.geometry, score.material);
-
-  score.cube.position.x += score.games[0].pts_win;
-  score.cube.position.z += score.games[0].pts_lose;
-}
-
-for (let score of Object.values(Games.scores)) {
-  initializeThreeJS(score);
-}
-
-let gameCursor = {};
-
-gameCursor.geometry = new THREE.BoxGeometry(0.8, 100000 / 2, 0.8);
-gameCursor.geometry.translate(
-  gameCursor.geometry.parameters.width / 2,
-  gameCursor.geometry.parameters.height / 2,
-  gameCursor.geometry.parameters.depth / 2,
-);
-
-gameCursor.material = new THREE.MeshPhongMaterial( { color: 0x00ffff } );
-gameCursor.cube = new THREE.Mesh(gameCursor.geometry, gameCursor.material);
-
-let lastCutoffGame = null;
-function activateColumns(cutoff) {
-  let cutoffGame = cutoff == 0 ? null : Games.all[cutoff - 1];
-  if (cutoffGame != lastCutoffGame) {
-    let gameInfoBox = document.getElementById("game");
-    if (cutoffGame == null) {
-      gameInfoBox.innerHTML = "No game."
-    } else {
-      gameInfoBox.innerHTML = `${cutoffGame.winner} v ${cutoffGame.loser}, ${cutoffGame.pts_win} - ${cutoffGame.pts_lose}, ${cutoffGame.game_date}${cutoffGame.nth_of_score === 1 ? " (SCORIGAMI)" : ""}`;
-    }
-  }
-  lastCutoffGame = cutoffGame;
-
-  if (cutoffGame == null) {
-    for (let score of Object.values(Games.scores)) {
-      Scene.scene.remove(score.cube);
-    }
-    Scene.scene.remove(gameCursor.cube);
-  } else {
-    for (let score of Object.values(Games.scores)) {
-      let lastMatchingGame = score.games.findLast(game => game.nth_of_history <= cutoffGame.nth_of_history);
-      if (lastMatchingGame == null) {
-        Scene.scene.remove(score.cube);
-      } else {
-        let height = lastMatchingGame.nth_of_score;
-        if (Games.sameScore(lastMatchingGame, cutoffGame)) {
-          height -= 1;
-
-          if (lastMatchingGame.nth_of_score === 1) {
-            gameCursor.cube.position.x = cutoffGame.pts_win;
-            gameCursor.cube.position.y = height / 2;
-            gameCursor.cube.position.z = cutoffGame.pts_lose;
-            Scene.scene.add(gameCursor.cube);
-          } else {
-            Scene.scene.remove(gameCursor.cube);
-          }
-        }
-        if (height / 2 != score.geometry.parameters.height) {
-          score.geometry = new THREE.BoxGeometry(0.8, height / 2, 0.8);
-          score.geometry.translate(
-            score.geometry.parameters.width / 2,
-            score.geometry.parameters.height / 2,
-            score.geometry.parameters.depth / 2,
-          );
-
-          score.cube.geometry.dispose()
-          score.cube.geometry = score.geometry;
-        }
-        Scene.scene.add(score.cube);
-      }
-    }
-  }
-}
 
 Scene.camera.position.x = -33;
 Scene.camera.position.y = 164;
@@ -208,7 +332,7 @@ function animate() {
   Scene.renderer.render(Scene.scene, Scene.camera);
   Scene.controls.update();
   pickHelper.pick(pickPosition, Scene.scene, Scene.camera);
-  activateColumns(iteration);
+  Scene.activateColumns(iteration);
 }
 Scene.renderer.setAnimationLoop( animate );
 
@@ -228,53 +352,6 @@ stepEl.addEventListener('input', e => {
   }
 });
 
-for (let ii = 0; ii <= 73; ii++) {
-  let ctx = document.createElement("canvas").getContext("2d");
-  ctx.imageSmoothingEnabled = false;
-  ctx.canvas.width = 128;
-  ctx.canvas.height = 128;
-  ctx.fillStyle = "#FF0";
-  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.fillStyle = "#000";
-  ctx.font = "bold 60px monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(`${ii}`, 64, 64);
-
-  let texture = new THREE.CanvasTexture(ctx.canvas);
-  let material = new THREE.MeshBasicMaterial({ map: texture });
-  material.map.minFilter = material.map.magFilter = THREE.LinearFilter;
-  let geometry = new THREE.BoxGeometry(1.0, 0, 1.0);
-
-  let winAxisScoreBox = new THREE.Mesh(geometry, material);
-  winAxisScoreBox.position.x = ii + 0.5;
-  winAxisScoreBox.position.z = -0.5;
-  Scene.scene.add(winAxisScoreBox);
-}
-
-for (let ii = 0; ii <= 51; ii++) {
-  let ctx = document.createElement("canvas").getContext("2d");
-  ctx.imageSmoothingEnabled = false;
-  ctx.canvas.width = 128;
-  ctx.canvas.height = 128;
-  ctx.fillStyle = "#FF0";
-  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.fillStyle = "#000";
-  ctx.font = "bold 60px monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(`${ii}`, 64, 64);
-
-  let texture = new THREE.CanvasTexture(ctx.canvas);
-  let material = new THREE.MeshBasicMaterial({ map: texture });
-  material.map.minFilter = material.map.magFilter = THREE.LinearFilter;
-  let geometry = new THREE.BoxGeometry(1.0, 0, 1.0);
-
-  let loseAxisScoreBox = new THREE.Mesh(geometry, material);
-  loseAxisScoreBox.position.x = 74.5;
-  loseAxisScoreBox.position.z = ii + 0.5;
-  Scene.scene.add(loseAxisScoreBox);
-}
 
 const pickPosition = {x: 0, y: 0};
 clearPickPosition();
