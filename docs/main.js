@@ -136,15 +136,15 @@ const Scene = {
   },
 
   updateScoreHeight (score, height) {
-    if (score.cube.geometry.parameters.height == height) {
+    if (score.cube.geometry.parameters.height == this.zScale * height) {
       // Nothing to do
     } else {
       score.cube.geometry.dispose()
       score.cube.geometry = this.makeColumn(height);
       score.cube.position.x = score.games[0].pts_win + this.gaps;
       score.cube.position.z = score.games[0].pts_lose + this.gaps;
-      this.enableScore(score);
     }
+    this.enableScore(score);
   },
 
   enableScore (score) { this.scene.add(score.cube); },
@@ -279,10 +279,11 @@ const Scene = {
   },
 
   lastCutoffGame: null,
+  lastShowHeight: null,
 
-  activateColumns (cutoff) {
+  activateColumns (cutoff, showHeight) {
     let cutoffGame = cutoff == 0 ? null : Games.all[cutoff - 1];
-    if (cutoffGame != this.lastCutoffGame) {
+    if (cutoffGame != this.lastCutoffGame || this.lastShowHeight != showHeight) {
       let gameInfoBox = document.getElementById("game");
       if (cutoffGame == null) {
         gameInfoBox.innerHTML = "No game."
@@ -305,7 +306,7 @@ const Scene = {
               this.enableCursor(cutoffGame.pts_win, 0, cutoffGame.pts_lose);
               this.disableScore(score);
             } else {
-              let height = lastGame.nth_of_score;
+              let height = showHeight ? lastGame.nth_of_score : 1;
               this.updateScoreHeight(score, height);
               this.disableCursor();
             }
@@ -314,6 +315,7 @@ const Scene = {
       }
     }
     this.lastCutoffGame = cutoffGame;
+    this.lastShowHeight = showHeight;
   }
 }
 
@@ -324,15 +326,21 @@ Scene.camera.position.y = 164;
 Scene.camera.position.z = 70;
 Scene.controls.update();
 
-let stepEl = document.getElementById('step');
+let iterationEl = document.getElementById('iteration');
+let iteration = iterationEl.value || 17950;
 
-let iteration = stepEl.value || 17950;
+let showHeightEl = document.getElementById('showHeight');
+let shouldShowHeight = showHeightEl.checked || true;
+showHeightEl.addEventListener('change', e => {
+  shouldShowHeight = e.srcElement.checked;
+});
+
 const pickHelper = new PickHelper();
 function animate() {
   Scene.renderer.render(Scene.scene, Scene.camera);
   Scene.controls.update();
   pickHelper.pick(pickPosition, Scene.scene, Scene.camera);
-  Scene.activateColumns(iteration);
+  Scene.activateColumns(iteration, shouldShowHeight);
 }
 Scene.renderer.setAnimationLoop( animate );
 
@@ -344,11 +352,11 @@ function roundToNearestScorigami(cutoff) {
   return roundedCutoff;
 }
 
-stepEl.addEventListener('input', e => {
+iterationEl.addEventListener('input', e => {
   let newIteration = parseInt(e.srcElement.value);
   if (!isNaN(newIteration)) {
     iteration = roundToNearestScorigami(newIteration);
-    stepEl.value = iteration;
+    iterationEl.value = iteration;
   }
 });
 
