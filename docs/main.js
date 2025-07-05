@@ -117,16 +117,16 @@ const Scene = {
   },
 
   initializeScore (score) {
-    let geometry = new THREE.BoxGeometry(1, 1, 1); // placeholder until updateScoreGeometry runs
+    let geometry = new THREE.BoxGeometry(1, 1, 1); // placeholder until updateScoreHeight runs
     let material = new THREE.MeshPhongMaterial( { color: 0x44dd77 } );
     score.cube = new THREE.Mesh(geometry, material);
 
-    this.updateScoreGeometry(score, this.columnWidth, score.games.length);
+    this.updateScoreHeight(score, score.games.length);
     this.disableScore(score);
   },
 
-  makeColumn (width, height) {
-    let geometry = new THREE.BoxGeometry(width, this.zScale * height, width);
+  makeColumn (height) {
+    let geometry = new THREE.BoxGeometry(this.columnWidth, this.zScale * height, this.columnWidth);
     geometry.translate(
       geometry.parameters.width / 2,
       geometry.parameters.height / 2,
@@ -135,12 +135,12 @@ const Scene = {
     return geometry;
   },
 
-  updateScoreGeometry (score, width, height) {
-    if (score.cube.geometry.parameters.height == height && score.cube.geometry.parameters.width == width) {
+  updateScoreHeight (score, height) {
+    if (score.cube.geometry.parameters.height == height) {
       // Nothing to do
     } else {
       score.cube.geometry.dispose()
-      score.cube.geometry = this.makeColumn(width, height);
+      score.cube.geometry = this.makeColumn(height);
       score.cube.position.x = score.games[0].pts_win + this.gaps;
       score.cube.position.z = score.games[0].pts_lose + this.gaps;
       this.enableScore(score);
@@ -306,7 +306,7 @@ const Scene = {
               this.disableScore(score);
             } else {
               let height = lastGame.nth_of_score;
-              this.updateScoreGeometry(score, this.columnWidth, height);
+              this.updateScoreHeight(score, height);
               this.disableCursor();
             }
           }
