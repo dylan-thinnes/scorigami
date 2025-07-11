@@ -22,6 +22,9 @@ class Score {
     return this.games[0];
   }
 
+  get pts_win () { return this.first.pts_win; }
+  get pts_lose () { return this.first.pts_lose; }
+
   allBefore (game) {
     return this.games.filter(g => Games.compare(g, game) < 1);
   }
@@ -69,6 +72,26 @@ const Games = {
     for (let [scoreTitle, scoreList] of Object.entries(scoreLists)) {
       this.scores[scoreTitle] = new Score(scoreList);
     }
+
+    let highestSoFar = null;
+    for (let score of Object.values(this.scores)) {
+      if (highestSoFar == null
+          || score.pts_win > highestSoFar.pts_win
+          || score.pts_win == highestSoFar.pts_win && score.pts_lose > highestSoFar.pts_lose) {
+        highestSoFar = score;
+      }
+    }
+    this.highestWin = highestSoFar;
+
+    highestSoFar = null;
+    for (let score of Object.values(this.scores)) {
+      if (highestSoFar == null
+          || score.pts_lose > highestSoFar.pts_lose
+          || score.pts_lose == highestSoFar.pts_lose && score.pts_win > highestSoFar.pts_win) {
+        highestSoFar = score;
+      }
+    }
+    this.highestLoss = highestSoFar;
   },
 
   score (pts_win, pts_lose) {
@@ -228,7 +251,7 @@ const Scene = {
     );
 
     this.winAxisScoreBoxes = [];
-    for (let ii = 0; ii <= 73; ii++) {
+    for (let ii = 0; ii <= Games.highestWin.pts_win; ii++) {
       let material = this.makeTextTileMaterial(`${ii}`);
       let geometry = new THREE.BoxGeometry(1.0, 0, 1.0);
 
@@ -240,12 +263,12 @@ const Scene = {
     }
 
     this.loseAxisScoreBoxes = [];
-    for (let ii = 0; ii <= 51; ii++) {
+    for (let ii = 0; ii <= Games.highestLoss.pts_lose; ii++) {
       let material = this.makeTextTileMaterial(`${ii}`);
       let geometry = new THREE.BoxGeometry(1.0, 0, 1.0);
 
       let loseAxisScoreBox = new THREE.Mesh(geometry, material);
-      loseAxisScoreBox.position.x = 74.5;
+      loseAxisScoreBox.position.x = Games.highestWin.pts_win + 1.5;
       loseAxisScoreBox.position.z = ii + 0.5;
       this.loseAxisScoreBoxes.push(loseAxisScoreBox);
       Scene.scene.add(loseAxisScoreBox);
@@ -260,8 +283,8 @@ const Scene = {
       { pts_win: 5, pts_lose: 1, length: 1 },
       { pts_win: 7, pts_lose: 1, length: 1 },
     ];
-    for (let pts_win = 0; pts_win < 51; pts_win++) {
-      impossibleTilesPositions.push({ pts_win, pts_lose: pts_win + 1, length: 51 - pts_win });
+    for (let ii = 0; ii < Games.highestLoss.pts_lose; ii++) {
+      impossibleTilesPositions.push({ pts_win: ii, pts_lose: ii + 1, length: Games.highestLoss.pts_lose - ii });
     }
 
     this.impossibleTiles = [];
@@ -346,7 +369,7 @@ Scene.renderer.setAnimationLoop( animate );
 
 function roundToNearestScorigami(cutoff) {
   let roundedCutoff = cutoff;
-  while ((roundedCutoff == 0 || Games.all[roundedCutoff - 1].nth_of_score != 1) && roundedCutoff < 17950) {
+  while ((roundedCutoff == 0 || Games.all[roundedCutoff - 1].nth_of_score != 1) && roundedCutoff < Games.all.length) {
     roundedCutoff += 1;
   }
   return roundedCutoff;
