@@ -30,7 +30,13 @@ class Score {
   }
 
   lastBefore (game) {
+    if (game == null) return null;
     return this.games.findLast(g => g.nth_of_history <= game.nth_of_history);
+  }
+
+  firstAfter (game) {
+    if (game == null) return this.games[0];
+    return this.games.find(g => g.nth_of_history >= game.nth_of_history);
   }
 }
 
@@ -159,19 +165,22 @@ const Scene = {
   },
 
   updateScoreHeight (score, height) {
-    if (score.cube.geometry.parameters.height == this.zScale * height) {
+    if (score.lastSetHeight == height) {
       // Nothing to do
     } else {
+      score.lastSetHeight = height;
       score.cube.geometry.dispose()
       score.cube.geometry = this.makeColumn(height);
       score.cube.position.x = score.games[0].pts_win + this.gaps;
       score.cube.position.z = score.games[0].pts_lose + this.gaps;
     }
-    this.enableScore(score);
+    this.scene.add(score.cube);
   },
 
-  enableScore (score) { this.scene.add(score.cube); },
-  disableScore (score) { this.scene.remove(score.cube); },
+  disableScore (score) {
+    score.lastSetHeight = null;
+    this.scene.remove(score.cube);
+  },
 
   enableCursor (x, y, z) {
     this.gameCursor.cube.position.x = x;
@@ -289,7 +298,7 @@ const Scene = {
 
     this.impossibleTiles = [];
     for (let position of impossibleTilesPositions) {
-      let material = new THREE.MeshPhongMaterial( { color: 0xeeeeee } );
+      let material = new THREE.MeshBasicMaterial( { color: 0x000000 } );
       let geometry = new THREE.BoxGeometry(1.0, 0.1, position.length);
 
       let greyTile = new THREE.Mesh(geometry, material);
@@ -301,56 +310,65 @@ const Scene = {
     }
   },
 
-  lastCutoffGame: null,
+  lastUpperGame: null,
+  lastLowerGame: null,
   lastShowHeight: null,
 
   activateColumns (cutoff, showHeight) {
-    let cutoffGame = cutoff == 0 ? null : Games.all[cutoff - 1];
-    if (cutoffGame != this.lastCutoffGame || this.lastShowHeight != showHeight) {
+    let lowerGame = cutoff[0] == 0 ? null : Games.all[cutoff[0] - 1];
+    let upperGame = cutoff[1] == 0 ? null : Games.all[cutoff[1] - 1];
+
+    if (upperGame != this.lastUpperGame || lowerGame != this.lastLowerGame || this.lastShowHeight != showHeight) {
+      this.disableCursor();
+
       let gameInfoBox = document.getElementById("game");
-      if (cutoffGame == null) {
-        gameInfoBox.innerHTML = "No game."
+      if (upperGame == null) {
+        gameInfoBox.innerHTML = "No game.";
       } else {
-        gameInfoBox.innerHTML = `${cutoffGame.winner} v ${cutoffGame.loser}, ${cutoffGame.pts_win} - ${cutoffGame.pts_lose}, ${cutoffGame.game_date}${cutoffGame.nth_of_score === 1 ? " (SCORIGAMI)" : ""}`;
+        gameInfoBox.innerHTML = `${upperGame.winner} v ${upperGame.loser}, ${upperGame.pts_win} - ${upperGame.pts_lose}, ${upperGame.game_date}${upperGame.nth_of_score === 1 ? " (SCORIGAMI)" : ""}`;
       }
 
-      if (cutoffGame == null) {
-        for (let score of Object.values(Games.scores)) {
+      for (let score of Object.values(Games.scores)) {
+        let firstGame = score.firstAfter(lowerGame);
+        let lastGame = score.lastBefore(upperGame);
+        let gamesBetween = firstGame == null || lastGame == null ? 0 : lastGame.nth_of_score - firstGame.nth_of_score + 1;
+
+        if (gamesBetween <= 0) {
           this.disableScore(score);
-        }
-        this.disableScore();
-      } else {
-        for (let score of Object.values(Games.scores)) {
-          let lastGame = score.lastBefore(cutoffGame);
-          if (lastGame == null) {
-            this.disableScore(score);
-          } else {
-            if (lastGame == cutoffGame && lastGame.nth_of_score == 1) {
-              this.enableCursor(cutoffGame.pts_win, 0, cutoffGame.pts_lose);
-              this.disableScore(score);
-            } else {
-              let height = showHeight ? lastGame.nth_of_score : 1;
-              this.updateScoreHeight(score, height);
-              this.disableCursor();
-            }
-          }
+        } else {
+          let height = showHeight ? gamesBetween : 1;
+          this.updateScoreHeight(score, height);
         }
       }
     }
-    this.lastCutoffGame = cutoffGame;
+
+    this.lastUpperGame = upperGame;
+    this.lastLowerGame = lowerGame;
     this.lastShowHeight = showHeight;
   }
 }
 
 Scene.initialize();
+window.Scene = Scene;
 
 Scene.camera.position.x = -33;
 Scene.camera.position.y = 164;
 Scene.camera.position.z = 70;
 Scene.controls.update();
 
-let iterationEl = document.getElementById('iteration');
-let iteration = iterationEl.value || 17950;
+function defaultBounds () { return [0, Games.all.length]; }
+
+let sliderEl = $('#slider');
+sliderEl.slider({
+  range: true,
+  min: defaultBounds()[0],
+  max: defaultBounds()[1],
+  values: defaultBounds(),
+});
+
+function sliderBounds () {
+  return sliderEl.slider("option", "values") || defaultBounds;
+}
 
 let showHeightEl = document.getElementById('showHeight');
 let shouldShowHeight = showHeightEl.checked || true;
@@ -363,7 +381,7 @@ function animate() {
   Scene.renderer.render(Scene.scene, Scene.camera);
   Scene.controls.update();
   pickHelper.pick(pickPosition, Scene.scene, Scene.camera);
-  Scene.activateColumns(iteration, shouldShowHeight);
+  Scene.activateColumns(sliderBounds(), shouldShowHeight);
 }
 Scene.renderer.setAnimationLoop( animate );
 
@@ -374,15 +392,6 @@ function roundToNearestScorigami(cutoff) {
   }
   return roundedCutoff;
 }
-
-iterationEl.addEventListener('input', e => {
-  let newIteration = parseInt(e.srcElement.value);
-  if (!isNaN(newIteration)) {
-    iteration = roundToNearestScorigami(newIteration);
-    iterationEl.value = iteration;
-  }
-});
-
 
 const pickPosition = {x: 0, y: 0};
 clearPickPosition();
