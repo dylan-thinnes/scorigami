@@ -1,7 +1,7 @@
 body {
   margin: 0;
   background-color: #dddddd;
-  font-family: sans serif;
+  font-family: "Oswald", sans-serif;
 }
 
 #info {
@@ -12,6 +12,57 @@ body {
   flex-direction: column;
   align-items: center;
   font-size: 1.5rem;
+  border-width: 0 0 1px 0;
+}
+
+#settings-tab {
+  font-size: 1.5rem;
+  position: absolute;
+  bottom: 3rem;
+  right: 0;
+  height: 8em;
+  border-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+#settings-toggler:hover {
+  background-color: #888;
+}
+
+#settings-toggler:active {
+  background-color: #666;
+}
+
+#settings-toggler {
+  text-align: center;
+  writing-mode: vertical-rl;
+  transform: rotate(-180deg);
+  height: 100%;
+  border-width: 1px 1px 1px 0px;
+  cursor: pointer;
+  border-style: solid;
+  border-color: #aaa;
+}
+
+#settings-box {
+  border-style: solid;
+  border-color: #aaa;
+  border-width: 1px 0 1px 0px;
+  height: 100%;
+  transition: width 0.5s linear;
+  width: 0px;
+  overflow-x: hidden;
+}
+
+#settings-box > div {
+  width: 15rem;
+}
+
+#settings-box.open {
+  width: 15rem;
 }
 
 #controls {
@@ -36,4 +87,11 @@ body {
 
 #controls #sliderContainer #slider .ui-widget-header {
   background-color: #44dd77;
+}
+
+.ui-container {
+  color: #ddd;
+  background-color: #282828ee;
+  border-style: solid;
+  border-color: #aaa;
 }

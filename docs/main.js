@@ -147,7 +147,7 @@ const Scene = {
 
   initializeScore (score) {
     let geometry = new THREE.BoxGeometry(1, 1, 1); // placeholder until updateScoreHeight runs
-    let material = new THREE.MeshPhongMaterial( { color: 0x44dd77 } );
+    let material = new THREE.MeshPhongMaterial( { color: 0x44dd77, opacity: 0.9, transparent: true } );
     score.cube = new THREE.Mesh(geometry, material);
 
     this.updateScoreHeight(score, score.games.length);
@@ -298,7 +298,7 @@ const Scene = {
 
     this.impossibleTiles = [];
     for (let position of impossibleTilesPositions) {
-      let material = new THREE.MeshBasicMaterial( { color: 0x000000 } );
+      let material = new THREE.MeshBasicMaterial( { color: 0x333333 } );
       let geometry = new THREE.BoxGeometry(1.0, 0.1, position.length);
 
       let greyTile = new THREE.Mesh(geometry, material);
@@ -422,3 +422,7 @@ function clearPickPosition() {
 window.addEventListener('mousemove', setPickPosition);
 window.addEventListener('mouseout', clearPickPosition);
 window.addEventListener('mouseleave', clearPickPosition);
+
+document.getElementById('settings-toggler').addEventListener('click', () => {
+  document.getElementById('settings-box').classList.toggle('open');
+})
