@@ -40,16 +40,16 @@ class Score {
   }
 }
 
-const Games = {
-  compare (game1, game2) {
+class Games {
+  static compare (game1, game2) {
     return game1.game_date == game2.game_date ? 0 : game1.game_date < game2.game_date ? -1 : 1;
-  },
+  }
 
-  sameScore (game1, game2) {
+  static sameScore (game1, game2) {
     return game1.pts_win == game2.pts_win && game1.pts_lose == game2.pts_lose;
-  },
+  }
 
-  initialize () {
+  constructor (rawGames) {
     let rawGamesCopy = JSON.parse(JSON.stringify(rawGames)); // A dirty trick, but effective
     this.all = rawGamesCopy.sort(Games.compare);
 
@@ -67,7 +67,7 @@ const Games = {
 
     // Initialize scores array, queried via `score` method
     let scoreLists = {};
-    for (let game of Games.all) {
+    for (let game of this.all) {
       if (scoreLists[game.boxscore_title] == null) {
         scoreLists[game.boxscore_title] = [];
       }
@@ -98,15 +98,14 @@ const Games = {
       }
     }
     this.highestLoss = highestSoFar;
-  },
+  }
 
   score (pts_win, pts_lose) {
     return this.scores[`${winning}_${losing}`];
   }
 };
 
-Games.initialize();
-window.Games = Games;
+const allGames = new Games(rawGames);
 
 class PickHelper {
   constructor () {
@@ -236,7 +235,7 @@ const Scene = {
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
-    for (let score of Object.values(Games.scores)) {
+    for (let score of Object.values(allGames.scores)) {
       Scene.initializeScore(score);
     }
 
@@ -260,7 +259,7 @@ const Scene = {
     );
 
     this.winAxisScoreBoxes = [];
-    for (let ii = 0; ii <= Games.highestWin.pts_win; ii++) {
+    for (let ii = 0; ii <= allGames.highestWin.pts_win; ii++) {
       let material = this.makeTextTileMaterial(`${ii}`);
       let geometry = new THREE.BoxGeometry(1.0, 0, 1.0);
 
@@ -272,12 +271,12 @@ const Scene = {
     }
 
     this.loseAxisScoreBoxes = [];
-    for (let ii = 0; ii <= Games.highestLoss.pts_lose; ii++) {
+    for (let ii = 0; ii <= allGames.highestLoss.pts_lose; ii++) {
       let material = this.makeTextTileMaterial(`${ii}`);
       let geometry = new THREE.BoxGeometry(1.0, 0, 1.0);
 
       let loseAxisScoreBox = new THREE.Mesh(geometry, material);
-      loseAxisScoreBox.position.x = Games.highestWin.pts_win + 1.5;
+      loseAxisScoreBox.position.x = allGames.highestWin.pts_win + 1.5;
       loseAxisScoreBox.position.z = ii + 0.5;
       this.loseAxisScoreBoxes.push(loseAxisScoreBox);
       Scene.scene.add(loseAxisScoreBox);
@@ -292,8 +291,8 @@ const Scene = {
       { pts_win: 5, pts_lose: 1, length: 1 },
       { pts_win: 7, pts_lose: 1, length: 1 },
     ];
-    for (let ii = 0; ii < Games.highestLoss.pts_lose; ii++) {
-      impossibleTilesPositions.push({ pts_win: ii, pts_lose: ii + 1, length: Games.highestLoss.pts_lose - ii });
+    for (let ii = 0; ii < allGames.highestLoss.pts_lose; ii++) {
+      impossibleTilesPositions.push({ pts_win: ii, pts_lose: ii + 1, length: allGames.highestLoss.pts_lose - ii });
     }
 
     this.impossibleTiles = [];
@@ -315,8 +314,8 @@ const Scene = {
   lastShowHeight: null,
 
   activateColumns (cutoff, showHeight) {
-    let lowerGame = cutoff[0] == 0 ? null : Games.all[cutoff[0] - 1];
-    let upperGame = cutoff[1] == 0 ? null : Games.all[cutoff[1] - 1];
+    let lowerGame = cutoff[0] == 0 ? null : allGames.all[cutoff[0] - 1];
+    let upperGame = cutoff[1] == 0 ? null : allGames.all[cutoff[1] - 1];
 
     if (upperGame != this.lastUpperGame || lowerGame != this.lastLowerGame || this.lastShowHeight != showHeight) {
       this.disableCursor();
@@ -328,7 +327,7 @@ const Scene = {
         gameInfoBox.innerHTML = `${upperGame.winner} v ${upperGame.loser}, ${upperGame.pts_win} - ${upperGame.pts_lose}, ${upperGame.game_date}${upperGame.nth_of_score === 1 ? " (SCORIGAMI)" : ""}`;
       }
 
-      for (let score of Object.values(Games.scores)) {
+      for (let score of Object.values(allGames.scores)) {
         let firstGame = score.firstAfter(lowerGame);
         let lastGame = score.lastBefore(upperGame);
         let gamesBetween = firstGame == null || lastGame == null ? 0 : lastGame.nth_of_score - firstGame.nth_of_score + 1;
@@ -388,7 +387,7 @@ Scene.renderer.setAnimationLoop( animate );
 
 function roundToNearestScorigami(cutoff) {
   let roundedCutoff = cutoff;
-  while ((roundedCutoff == 0 || Games.all[roundedCutoff - 1].nth_of_score != 1) && roundedCutoff < Games.all.length) {
+  while ((roundedCutoff == 0 || allGames.all[roundedCutoff - 1].nth_of_score != 1) && roundedCutoff < allGames.all.length) {
     roundedCutoff += 1;
   }
   return roundedCutoff;
