@@ -355,19 +355,26 @@ Scene.camera.position.y = 164;
 Scene.camera.position.z = 70;
 Scene.controls.update();
 
-function defaultBounds () { return [0, Games.all.length]; }
+function defaultBounds () { return [0, allGames.all.length]; }
 
-let sliderEl = $('#slider');
-sliderEl.slider({
-  range: true,
-  min: defaultBounds()[0],
-  max: defaultBounds()[1],
-  values: defaultBounds(),
-  orientation: 'vertical',
+let slider = new DualVRangeBar('slider', {
+  size: 'default',
+  lowerBound: defaultBounds()[0],
+  upperBound: defaultBounds()[1],
+  sliderColor: '#1ac360',
+  sliderActiveColor: '#00aa49',
+  rangeColor: '#44dd77',
+  rangeActiveColor: '#44dd77',
+  minSpan: 0,
+  //bgColor: '#44dd77',
 });
 
 function sliderBounds () {
-  return sliderEl.slider("option", "values") || defaultBounds;
+  //return sliderEl.slider("option", "values") || defaultBounds;
+  return [
+    Math.round(defaultBounds()[1] - slider.upper),
+    Math.round(defaultBounds()[1] - slider.lower)
+  ];
 }
 
 let showHeightEl = document.getElementById('showHeight');
@@ -425,4 +432,4 @@ window.addEventListener('mouseleave', clearPickPosition);
 
 document.getElementById('settings-toggler').addEventListener('click', () => {
   document.getElementById('settings-box').classList.toggle('open');
-})
+});

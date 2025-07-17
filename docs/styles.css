@@ -77,16 +77,17 @@ body {
 }
 
 #controls #sliderContainer {
-  height: 85%;
   width: 20px;
+  height: 85%;
+}
+
+#slider {
+  position: relative;
+  height: 100%;
 }
 
 #controls #sliderContainer #slider .ui-widget-header {
   background-color: #44dd77;
-}
-
-#slider {
-  height: 100%;
 }
 
 .ui-container {
