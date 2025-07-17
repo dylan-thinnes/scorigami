@@ -67,26 +67,26 @@ body {
 
 #controls {
   position: absolute;
-  width: 100%;
-  bottom: 0px;
+  height: 100%;
+  left: 10px;
   text-align: center;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
 }
 
-#controls > #iteration {
-  height: 20px;
-  width: 90%;
-}
-
 #controls #sliderContainer {
-  height: 20px;
-  width: 90%;
+  height: 85%;
+  width: 20px;
 }
 
 #controls #sliderContainer #slider .ui-widget-header {
   background-color: #44dd77;
+}
+
+#slider {
+  height: 100%;
 }
 
 .ui-container {

@@ -364,6 +364,7 @@ sliderEl.slider({
   min: defaultBounds()[0],
   max: defaultBounds()[1],
   values: defaultBounds(),
+  orientation: 'vertical',
 });
 
 function sliderBounds () {
