@@ -196,9 +196,9 @@ const Scene = {
       ctx.imageSmoothingEnabled = false;
       ctx.canvas.width = 128;
       ctx.canvas.height = 128;
-      ctx.fillStyle = "#FF0";
+      ctx.fillStyle = "#111";
       ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      ctx.fillStyle = "#000";
+      ctx.fillStyle = "#ddd";
       ctx.font = "bold 60px monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
