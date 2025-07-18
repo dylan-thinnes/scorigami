@@ -354,10 +354,10 @@ const Scene = {
 Scene.initialize();
 window.Scene = Scene;
 
-Scene.camera.position.x = -33;
-Scene.camera.position.y = 164;
-Scene.camera.position.z = 70;
-Scene.controls.update();
+Scene.camera.position.x = -23;
+Scene.camera.position.y = 75;
+Scene.camera.position.z = 40;
+Scene.controls.target.set(37.48, 34.29, 6.73);
 
 function defaultBounds () { return [0, allGames.all.length]; }
 
