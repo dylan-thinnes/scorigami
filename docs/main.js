@@ -124,7 +124,8 @@ class PickHelper {
     // cast a ray through the frustum
     this.raycaster.setFromCamera(normalizedPosition, camera);
     // get the list of objects the ray intersected
-    const intersectedObjects = this.raycaster.intersectObjects(scene.children);
+    const intersectedObjects = this.raycaster.intersectObjects(scene.children).filter(intersection =>
+      Scene.scoreCubes.get(intersection.object) != null);
     if (intersectedObjects.length > 0) {
       // pick the first object. It's the closest one
       this.pickedObject = intersectedObjects[0].object;
@@ -151,6 +152,7 @@ const Scene = {
 
     this.updateScoreHeight(score, score.games.length);
     this.disableScore(score);
+    this.scoreCubes.set(score.cube, score);
   },
 
   makeColumn (height) {
@@ -235,6 +237,7 @@ const Scene = {
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
+    this.scoreCubes = new Map();
     for (let score of Object.values(allGames.scores)) {
       Scene.initializeScore(score);
     }
