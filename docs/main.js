@@ -196,8 +196,6 @@ const Scene = {
       ctx.imageSmoothingEnabled = false;
       ctx.canvas.width = 128;
       ctx.canvas.height = 128;
-      ctx.fillStyle = "#111";
-      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       ctx.fillStyle = "#ddd";
       ctx.font = "bold 60px monospace";
       ctx.textAlign = "center";
@@ -205,7 +203,7 @@ const Scene = {
       ctx.fillText(text, 64, 64);
 
       let texture = new THREE.CanvasTexture(ctx.canvas);
-      let material = new THREE.MeshBasicMaterial({ map: texture });
+      let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
       material.map.minFilter = material.map.magFilter = THREE.LinearFilter;
       return material;
   },
@@ -279,7 +277,7 @@ const Scene = {
       let geometry = new THREE.BoxGeometry(1.0, 0, 1.0);
 
       let loseAxisScoreBox = new THREE.Mesh(geometry, material);
-      loseAxisScoreBox.position.x = allGames.highestWin.pts_win + 1.5;
+      loseAxisScoreBox.position.x = ii - 0.5; // allGames.highestWin.pts_win + 1.5;
       loseAxisScoreBox.position.z = ii + 0.5;
       this.loseAxisScoreBoxes.push(loseAxisScoreBox);
       Scene.scene.add(loseAxisScoreBox);
@@ -294,8 +292,11 @@ const Scene = {
       { pts_win: 5, pts_lose: 1, length: 1 },
       { pts_win: 7, pts_lose: 1, length: 1 },
     ];
-    for (let ii = 0; ii < allGames.highestLoss.pts_lose; ii++) {
+    for (let ii = -1; ii < allGames.highestLoss.pts_lose; ii++) {
       impossibleTilesPositions.push({ pts_win: ii, pts_lose: ii + 1, length: allGames.highestLoss.pts_lose - ii });
+    }
+    for (let ii = 0; ii <= allGames.highestWin.pts_win; ii++) {
+      impossibleTilesPositions.push({ pts_win: ii, pts_lose: -1, length: 1 });
     }
 
     this.impossibleTiles = [];
