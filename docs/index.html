@@ -52,13 +52,17 @@
       <div id="settings-toggler" class="ui-container">SETTINGS</div>
       <div id="settings-box" class="ui-container">
         <div>
-          <input type="checkbox" id="showHeight" name="showHeight" checked="true" /> <label for="showHeight">Show height</label>
+          <input type="checkbox" id="showHeight" name="showHeight" /> <label for="showHeight">Show height</label>
+          <br/>
+          League<br/>
+          <label for="league-nfl"><input type="radio" class="league" id="league-nfl" name="league" value="nfl" />NFL</label>
+          <label for="league-cfl"><input type="radio" class="league" id="league-cfl" name="league" value="cfl" />CFL</label><br/>
+          <label for="league-college"><input type="radio" class="league" id="league-college" name="league" value="college" />College</label>
         </div>
       </div>
     </div>
     <div id="controls">
       <div id="sliderContainer">
-        <div id="slider"></div>
       </div>
     </div>
   </body>

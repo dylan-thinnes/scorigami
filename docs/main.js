@@ -1,4 +1,6 @@
-import { rawGames } from './raw-games.js';
+import { rawGames as rawGamesNFL } from './raw-games-nfl.js';
+import { rawGames as rawGamesCFL } from './raw-games-cfl.js';
+import { rawGames as rawGamesCollege } from './raw-games-college.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
@@ -49,8 +51,8 @@ class Games {
     return game1.pts_win == game2.pts_win && game1.pts_lose == game2.pts_lose;
   }
 
-  constructor (rawGames) {
-    let rawGamesCopy = JSON.parse(JSON.stringify(rawGames)); // A dirty trick, but effective
+  constructor (games) {
+    let rawGamesCopy = JSON.parse(JSON.stringify(games)); // A dirty trick, but effective
     this.all = rawGamesCopy.sort(Games.compare);
 
     // Set up history index and pointers to prev/last
@@ -105,17 +107,19 @@ class Games {
   }
 };
 
-const allGames = new Games(rawGames);
+const allGamesNFL = new Games(rawGamesNFL);
+const allGamesCFL = new Games(rawGamesCFL);
+const allGamesCollege = new Games(rawGamesCollege);
 
 class PickHelper {
-  constructor (scene) {
-    this.scene = scene;
+  constructor (ui) {
+    this.ui = ui;
     this.raycaster = new THREE.Raycaster();
     this.pickedObject = null;
     this.pickedObjectSavedColor = 0;
   }
 
-  pick (normalizedPosition, scene, camera) {
+  pick (normalizedPosition) {
     // restore the color if there is a picked object
     if (this.pickedObject) {
       this.pickedObject.material.color.setHex(this.pickedObjectSavedColor);
@@ -123,10 +127,10 @@ class PickHelper {
     }
 
     // cast a ray through the frustum
-    this.raycaster.setFromCamera(normalizedPosition, camera);
+    this.raycaster.setFromCamera(normalizedPosition, ui.camera);
     // get the list of objects the ray intersected
-    const intersectedObjects = this.raycaster.intersectObjects(scene.children).filter(intersection =>
-      this.scene.scoreCubes.get(intersection.object) != null);
+    const intersectedObjects = this.raycaster.intersectObjects(ui.scene.children).filter(intersection =>
+      this.ui.scoreCubesToScores.get(intersection.object) != null);
     if (intersectedObjects.length > 0) {
       // pick the first object. It's the closest one
       this.pickedObject = intersectedObjects[0].object;
@@ -138,19 +142,22 @@ class PickHelper {
   }
 }
 
-class Scene {
+class UI {
   get columnWidth () {
     return 1.0 - this.gaps * 2;
   }
 
   initializeScore (score) {
+    let scoreScene = {}
+    this.scoreScenes.set(score, scoreScene);
+
     let geometry = new THREE.BoxGeometry(1, 1, 1); // placeholder until updateScoreHeight runs
     let material = new THREE.MeshPhongMaterial( { color: 0x44dd77, opacity: 0.9, transparent: true } );
-    score.cube = new THREE.Mesh(geometry, material);
+    scoreScene.cube = new THREE.Mesh(geometry, material);
+    this.scoreCubesToScores.set(scoreScene.cube, score)
 
-    this.updateScoreHeight(score, score.games.length);
+    this.updateScoreHeight(score, this.games.length);
     this.disableScore(score);
-    this.scoreCubes.set(score.cube, score);
   }
 
   makeColumn (height) {
@@ -164,21 +171,23 @@ class Scene {
   }
 
   updateScoreHeight (score, height) {
-    if (score.lastSetHeight == height) {
+    let scoreScene = this.scoreScenes.get(score);
+    if (scoreScene.lastSetHeight == height) {
       // Nothing to do
     } else {
-      score.lastSetHeight = height;
-      score.cube.geometry.dispose()
-      score.cube.geometry = this.makeColumn(height);
-      score.cube.position.x = score.games[0].pts_win + this.gaps;
-      score.cube.position.z = score.games[0].pts_lose + this.gaps;
+      scoreScene.lastSetHeight = height;
+      scoreScene.cube.geometry.dispose();
+      scoreScene.cube.geometry = this.makeColumn(height);
+      scoreScene.cube.position.x = score.games[0].pts_win + this.gaps;
+      scoreScene.cube.position.z = score.games[0].pts_lose + this.gaps;
     }
-    this.scene.add(score.cube);
+    this.scene.add(scoreScene.cube);
   }
 
   disableScore (score) {
-    score.lastSetHeight = null;
-    this.scene.remove(score.cube);
+    let scoreScene = this.scoreScenes.get(score);
+    scoreScene.lastSetHeight = null;
+    this.scene.remove(scoreScene.cube);
   }
 
   enableCursor (x, y, z) {
@@ -262,11 +271,23 @@ class Scene {
   initialize (games) {
     this.games = games;
 
-    this.scoreCubes = new Map();
+    if (this.scoreScenes != null) {
+      for (let scoreScene of this.scoreScenes) {
+        this.scene.remove(scoreScene[1].cube);
+      }
+    }
+
+    this.scoreScenes = new Map();
+    this.scoreCubesToScores = new Map();
     for (let score of Object.values(this.games.scores)) {
       this.initializeScore(score);
     }
 
+    if (this.winAxisScoreBoxes != null) {
+      for (let scoreBox of this.winAxisScoreBoxes) {
+        this.scene.remove(scoreBox);
+      }
+    }
     this.winAxisScoreBoxes = [];
     for (let ii = 0; ii <= this.games.highestWin.pts_win; ii++) {
       let material = this.makeTextTileMaterial(`${ii}`);
@@ -279,6 +300,11 @@ class Scene {
       this.scene.add(winAxisScoreBox);
     }
 
+    if (this.loseAxisScoreBoxes != null) {
+      for (let scoreBox of this.loseAxisScoreBoxes) {
+        this.scene.remove(scoreBox);
+      }
+    }
     this.loseAxisScoreBoxes = [];
     for (let ii = 0; ii <= this.games.highestLoss.pts_lose; ii++) {
       let material = this.makeTextTileMaterial(`${ii}`);
@@ -307,6 +333,11 @@ class Scene {
       impossibleTilesPositions.push({ pts_win: ii, pts_lose: -1, length: 1 });
     }
 
+    if (this.impossibleTiles != null) {
+      for (let impossibleTile of this.impossibleTiles) {
+        this.scene.remove(impossibleTile);
+      }
+    }
     this.impossibleTiles = [];
     for (let position of impossibleTilesPositions) {
       let material = new THREE.MeshBasicMaterial( { color: 0x333333 } );
@@ -319,6 +350,37 @@ class Scene {
       this.impossibleTiles.push(greyTile);
       this.scene.add(greyTile);
     }
+
+    let sliderContainer = document.getElementById("sliderContainer");
+    if (this.sliderEl != null) {
+      sliderContainer.removeChild(this.sliderEl);
+    }
+    this.sliderEl = document.createElement("div");
+    this.sliderEl.id = "slider";
+    sliderContainer.appendChild(this.sliderEl);
+
+    this.slider = new DualVRangeBar("slider", {
+      size: 'default',
+      lowerBound: this.defaultBounds()[0],
+      upperBound: this.defaultBounds()[1],
+      sliderColor: '#1ac360',
+      sliderActiveColor: '#00aa49',
+      rangeColor: '#44dd77',
+      rangeActiveColor: '#44dd77',
+      minSpan: 0,
+      //bgColor: '#44dd77',
+    });
+  }
+
+  defaultBounds () {
+    return [0, this.games.all.length];
+  }
+
+  sliderBounds () {
+    return [
+      Math.round(this.defaultBounds()[1] - this.slider.upper),
+      Math.round(this.defaultBounds()[1] - this.slider.lower)
+    ];
   }
 
   activateColumns (cutoff, showHeight) {
@@ -355,54 +417,52 @@ class Scene {
   }
 }
 
-const scene = new Scene();
-scene.initialize(allGames);
+const ui = new UI();
+ui.initialize(allGamesNFL);
+ui.initialize(allGamesCFL);
 
-scene.camera.position.x = -23;
-scene.camera.position.y = 75;
-scene.camera.position.z = 40;
-scene.controls.target.set(37.48, 34.29, 6.73);
-
-function defaultBounds () { return [0, allGames.all.length]; }
-
-let slider = new DualVRangeBar('slider', {
-  size: 'default',
-  lowerBound: defaultBounds()[0],
-  upperBound: defaultBounds()[1],
-  sliderColor: '#1ac360',
-  sliderActiveColor: '#00aa49',
-  rangeColor: '#44dd77',
-  rangeActiveColor: '#44dd77',
-  minSpan: 0,
-  //bgColor: '#44dd77',
-});
-
-function sliderBounds () {
-  //return sliderEl.slider("option", "values") || defaultBounds;
-  return [
-    Math.round(defaultBounds()[1] - slider.upper),
-    Math.round(defaultBounds()[1] - slider.lower)
-  ];
-}
+ui.camera.position.x = -23;
+ui.camera.position.y = 75;
+ui.camera.position.z = 40;
+ui.controls.target.set(37.48, 34.29, 6.73);
 
 let showHeightEl = document.getElementById('showHeight');
-let shouldShowHeight = showHeightEl.checked || true;
+showHeightEl.checked = true;
+let shouldShowHeight = showHeightEl.checked;
 showHeightEl.addEventListener('change', e => {
   shouldShowHeight = e.srcElement.checked;
 });
 
-const pickHelper = new PickHelper(scene);
-function animate() {
-  scene.renderer.render(scene.scene, scene.camera);
-  scene.controls.update();
-  pickHelper.pick(pickPosition, scene.scene, scene.camera);
-  scene.activateColumns(sliderBounds(), shouldShowHeight);
+let leagues = {
+  'league-nfl': allGamesNFL,
+  'league-cfl': allGamesCFL,
+  'league-college': allGamesCollege,
+};
+let currentLeague = 'league-nfl';
+ui.initialize(leagues[currentLeague]);
+let leagueEls = [...document.getElementsByClassName('league')];
+for (let leagueEl of leagueEls) {
+  leagueEl.checked = leagueEl.id == "league-nfl";
+  leagueEl.addEventListener('change', e => {
+    if (e.srcElement.checked && e.srcElement.id != currentLeague) {
+      currentLeague = e.srcElement.id;
+      ui.initialize(leagues[currentLeague]);
+    }
+  });
 }
-scene.renderer.setAnimationLoop( animate );
+
+const pickHelper = new PickHelper(ui);
+function animate() {
+  ui.renderer.render(ui.scene, ui.camera);
+  ui.controls.update();
+  pickHelper.pick(pickPosition);
+  ui.activateColumns(ui.sliderBounds(), shouldShowHeight);
+}
+ui.renderer.setAnimationLoop( animate );
 
 function roundToNearestScorigami(cutoff) {
   let roundedCutoff = cutoff;
-  while ((roundedCutoff == 0 || allGames.all[roundedCutoff - 1].nth_of_score != 1) && roundedCutoff < allGames.all.length) {
+  while ((roundedCutoff == 0 || allGamesCFL.all[roundedCutoff - 1].nth_of_score != 1) && roundedCutoff < allGamesCFL.all.length) {
     roundedCutoff += 1;
   }
   return roundedCutoff;
@@ -412,17 +472,17 @@ const pickPosition = {x: 0, y: 0};
 clearPickPosition();
 
 function getCanvasRelativePosition(event) {
-  const rect = scene.renderer.domElement.getBoundingClientRect();
+  const rect = ui.renderer.domElement.getBoundingClientRect();
   return {
-    x: (event.clientX - rect.left) * scene.renderer.domElement.width  / rect.width,
-    y: (event.clientY - rect.top ) * scene.renderer.domElement.height / rect.height,
+    x: (event.clientX - rect.left) * ui.renderer.domElement.width  / rect.width,
+    y: (event.clientY - rect.top ) * ui.renderer.domElement.height / rect.height,
   };
 }
  
 function setPickPosition(event) {
   const pos = getCanvasRelativePosition(event);
-  pickPosition.x = (pos.x / scene.renderer.domElement.width ) *  2 - 1;
-  pickPosition.y = (pos.y / scene.renderer.domElement.height) * -2 + 1;  // note we flip Y
+  pickPosition.x = (pos.x / ui.renderer.domElement.width ) *  2 - 1;
+  pickPosition.y = (pos.y / ui.renderer.domElement.height) * -2 + 1;  // note we flip Y
 }
  
 function clearPickPosition() {
