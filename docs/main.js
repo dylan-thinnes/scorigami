@@ -108,7 +108,8 @@ class Games {
 const allGames = new Games(rawGames);
 
 class PickHelper {
-  constructor () {
+  constructor (scene) {
+    this.scene = scene;
     this.raycaster = new THREE.Raycaster();
     this.pickedObject = null;
     this.pickedObjectSavedColor = 0;
@@ -125,7 +126,7 @@ class PickHelper {
     this.raycaster.setFromCamera(normalizedPosition, camera);
     // get the list of objects the ray intersected
     const intersectedObjects = this.raycaster.intersectObjects(scene.children).filter(intersection =>
-      Scene.scoreCubes.get(intersection.object) != null);
+      this.scene.scoreCubes.get(intersection.object) != null);
     if (intersectedObjects.length > 0) {
       // pick the first object. It's the closest one
       this.pickedObject = intersectedObjects[0].object;
@@ -137,13 +138,10 @@ class PickHelper {
   }
 }
 
-const Scene = {
-  gaps: 0.1,
-  zScale: 0.25,
-
+class Scene {
   get columnWidth () {
     return 1.0 - this.gaps * 2;
-  },
+  }
 
   initializeScore (score) {
     let geometry = new THREE.BoxGeometry(1, 1, 1); // placeholder until updateScoreHeight runs
@@ -153,7 +151,7 @@ const Scene = {
     this.updateScoreHeight(score, score.games.length);
     this.disableScore(score);
     this.scoreCubes.set(score.cube, score);
-  },
+  }
 
   makeColumn (height) {
     let geometry = new THREE.BoxGeometry(this.columnWidth, this.zScale * height, this.columnWidth);
@@ -163,7 +161,7 @@ const Scene = {
       geometry.parameters.depth / 2,
     );
     return geometry;
-  },
+  }
 
   updateScoreHeight (score, height) {
     if (score.lastSetHeight == height) {
@@ -176,20 +174,20 @@ const Scene = {
       score.cube.position.z = score.games[0].pts_lose + this.gaps;
     }
     this.scene.add(score.cube);
-  },
+  }
 
   disableScore (score) {
     score.lastSetHeight = null;
     this.scene.remove(score.cube);
-  },
+  }
 
   enableCursor (x, y, z) {
     this.gameCursor.cube.position.x = x;
     this.gameCursor.cube.position.y = y;
     this.gameCursor.cube.position.z = z;
     this.scene.add(this.gameCursor.cube);
-  },
-  disableCursor () { this.scene.remove(this.gameCursor.cube); },
+  }
+  disableCursor () { this.scene.remove(this.gameCursor.cube); }
 
   makeTextTileMaterial (text) {
       let ctx = document.createElement("canvas").getContext("2d");
@@ -206,9 +204,15 @@ const Scene = {
       let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
       material.map.minFilter = material.map.magFilter = THREE.LinearFilter;
       return material;
-  },
+  }
 
-  initialize () {
+  constructor () {
+    this.gaps = 0.1;
+    this.zScale = 0.25;
+    this.lastUpperGame = null;
+    this.lastLowerGame = null;
+    this.lastShowHeight = null;
+
     this.scene = new THREE.Scene();
     const color = new THREE.Color().setHex(0xdddddd);
     this.scene.background = color;
@@ -235,11 +239,6 @@ const Scene = {
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
-    this.scoreCubes = new Map();
-    for (let score of Object.values(allGames.scores)) {
-      Scene.initializeScore(score);
-    }
-
     this.gameCursor = {};
 
     this.gameCursor.geometry = new THREE.BoxGeometry(
@@ -258,9 +257,18 @@ const Scene = {
       this.gameCursor.geometry,
       this.gameCursor.material
     );
+  }
+
+  initialize (games) {
+    this.games = games;
+
+    this.scoreCubes = new Map();
+    for (let score of Object.values(this.games.scores)) {
+      this.initializeScore(score);
+    }
 
     this.winAxisScoreBoxes = [];
-    for (let ii = 0; ii <= allGames.highestWin.pts_win; ii++) {
+    for (let ii = 0; ii <= this.games.highestWin.pts_win; ii++) {
       let material = this.makeTextTileMaterial(`${ii}`);
       let geometry = new THREE.BoxGeometry(1.0, 0, 1.0);
 
@@ -268,19 +276,19 @@ const Scene = {
       winAxisScoreBox.position.x = ii + 0.5;
       winAxisScoreBox.position.z = -0.5;
       this.winAxisScoreBoxes.push(winAxisScoreBox);
-      Scene.scene.add(winAxisScoreBox);
+      this.scene.add(winAxisScoreBox);
     }
 
     this.loseAxisScoreBoxes = [];
-    for (let ii = 0; ii <= allGames.highestLoss.pts_lose; ii++) {
+    for (let ii = 0; ii <= this.games.highestLoss.pts_lose; ii++) {
       let material = this.makeTextTileMaterial(`${ii}`);
       let geometry = new THREE.BoxGeometry(1.0, 0, 1.0);
 
       let loseAxisScoreBox = new THREE.Mesh(geometry, material);
-      loseAxisScoreBox.position.x = ii - 0.5; // allGames.highestWin.pts_win + 1.5;
+      loseAxisScoreBox.position.x = ii - 0.5; // this.games.highestWin.pts_win + 1.5;
       loseAxisScoreBox.position.z = ii + 0.5;
       this.loseAxisScoreBoxes.push(loseAxisScoreBox);
-      Scene.scene.add(loseAxisScoreBox);
+      this.scene.add(loseAxisScoreBox);
     }
 
     let impossibleTilesPositions = [
@@ -292,10 +300,10 @@ const Scene = {
       { pts_win: 5, pts_lose: 1, length: 1 },
       { pts_win: 7, pts_lose: 1, length: 1 },
     ];
-    for (let ii = -1; ii < allGames.highestLoss.pts_lose; ii++) {
-      impossibleTilesPositions.push({ pts_win: ii, pts_lose: ii + 1, length: allGames.highestLoss.pts_lose - ii });
+    for (let ii = -1; ii < this.games.highestLoss.pts_lose; ii++) {
+      impossibleTilesPositions.push({ pts_win: ii, pts_lose: ii + 1, length: this.games.highestLoss.pts_lose - ii });
     }
-    for (let ii = 0; ii <= allGames.highestWin.pts_win; ii++) {
+    for (let ii = 0; ii <= this.games.highestWin.pts_win; ii++) {
       impossibleTilesPositions.push({ pts_win: ii, pts_lose: -1, length: 1 });
     }
 
@@ -309,17 +317,13 @@ const Scene = {
       greyTile.position.y = -0.1;
       greyTile.position.z = position.pts_lose + position.length / 2;
       this.impossibleTiles.push(greyTile);
-      Scene.scene.add(greyTile);
+      this.scene.add(greyTile);
     }
-  },
-
-  lastUpperGame: null,
-  lastLowerGame: null,
-  lastShowHeight: null,
+  }
 
   activateColumns (cutoff, showHeight) {
-    let lowerGame = cutoff[0] == 0 ? null : allGames.all[cutoff[0] - 1];
-    let upperGame = cutoff[1] == 0 ? null : allGames.all[cutoff[1] - 1];
+    let lowerGame = cutoff[0] == 0 ? null : this.games.all[cutoff[0] - 1];
+    let upperGame = cutoff[1] == 0 ? null : this.games.all[cutoff[1] - 1];
 
     if (upperGame != this.lastUpperGame || lowerGame != this.lastLowerGame || this.lastShowHeight != showHeight) {
       this.disableCursor();
@@ -331,7 +335,7 @@ const Scene = {
         gameInfoBox.innerHTML = `${upperGame.winner} v ${upperGame.loser}, ${upperGame.pts_win} - ${upperGame.pts_lose}, ${upperGame.game_date}${upperGame.nth_of_score === 1 ? " (SCORIGAMI)" : ""}`;
       }
 
-      for (let score of Object.values(allGames.scores)) {
+      for (let score of Object.values(this.games.scores)) {
         let firstGame = score.firstAfter(lowerGame);
         let lastGame = score.lastBefore(upperGame);
         let gamesBetween = firstGame == null || lastGame == null ? 0 : lastGame.nth_of_score - firstGame.nth_of_score + 1;
@@ -351,13 +355,13 @@ const Scene = {
   }
 }
 
-Scene.initialize();
-window.Scene = Scene;
+const scene = new Scene();
+scene.initialize(allGames);
 
-Scene.camera.position.x = -23;
-Scene.camera.position.y = 75;
-Scene.camera.position.z = 40;
-Scene.controls.target.set(37.48, 34.29, 6.73);
+scene.camera.position.x = -23;
+scene.camera.position.y = 75;
+scene.camera.position.z = 40;
+scene.controls.target.set(37.48, 34.29, 6.73);
 
 function defaultBounds () { return [0, allGames.all.length]; }
 
@@ -387,14 +391,14 @@ showHeightEl.addEventListener('change', e => {
   shouldShowHeight = e.srcElement.checked;
 });
 
-const pickHelper = new PickHelper();
+const pickHelper = new PickHelper(scene);
 function animate() {
-  Scene.renderer.render(Scene.scene, Scene.camera);
-  Scene.controls.update();
-  pickHelper.pick(pickPosition, Scene.scene, Scene.camera);
-  Scene.activateColumns(sliderBounds(), shouldShowHeight);
+  scene.renderer.render(scene.scene, scene.camera);
+  scene.controls.update();
+  pickHelper.pick(pickPosition, scene.scene, scene.camera);
+  scene.activateColumns(sliderBounds(), shouldShowHeight);
 }
-Scene.renderer.setAnimationLoop( animate );
+scene.renderer.setAnimationLoop( animate );
 
 function roundToNearestScorigami(cutoff) {
   let roundedCutoff = cutoff;
@@ -408,17 +412,17 @@ const pickPosition = {x: 0, y: 0};
 clearPickPosition();
 
 function getCanvasRelativePosition(event) {
-  const rect = Scene.renderer.domElement.getBoundingClientRect();
+  const rect = scene.renderer.domElement.getBoundingClientRect();
   return {
-    x: (event.clientX - rect.left) * Scene.renderer.domElement.width  / rect.width,
-    y: (event.clientY - rect.top ) * Scene.renderer.domElement.height / rect.height,
+    x: (event.clientX - rect.left) * scene.renderer.domElement.width  / rect.width,
+    y: (event.clientY - rect.top ) * scene.renderer.domElement.height / rect.height,
   };
 }
  
 function setPickPosition(event) {
   const pos = getCanvasRelativePosition(event);
-  pickPosition.x = (pos.x / Scene.renderer.domElement.width ) *  2 - 1;
-  pickPosition.y = (pos.y / Scene.renderer.domElement.height) * -2 + 1;  // note we flip Y
+  pickPosition.x = (pos.x / scene.renderer.domElement.width ) *  2 - 1;
+  pickPosition.y = (pos.y / scene.renderer.domElement.height) * -2 + 1;  // note we flip Y
 }
  
 function clearPickPosition() {
