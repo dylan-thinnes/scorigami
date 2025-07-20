@@ -4,6 +4,9 @@ import { rawGames as rawGamesNCAAF } from './raw-games-ncaaf.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+//import { chroma } from 'chroma-js';
+
+window.chroma = chroma;
 
 class Score {
   constructor (games) {
@@ -137,7 +140,7 @@ class PickHelper {
       // save its color
       this.pickedObjectSavedColor = this.pickedObject.material.color.getHex();
       // set its color to red
-      this.pickedObject.material.color.setHex(0xFF0000);
+      this.pickedObject.material.color.setHex(0x888888);
     }
   }
 }
@@ -151,12 +154,13 @@ class UI {
     let scoreScene = {}
     this.scoreScenes.set(score, scoreScene);
 
-    let geometry = new THREE.BoxGeometry(1, 1, 1); // placeholder until updateScoreHeight runs
-    let material = new THREE.MeshPhongMaterial( { color: 0x44dd77, opacity: 0.9, transparent: true } );
+    // placeholder geometry & material until updateScoreHeight runs
+    let geometry = new THREE.BoxGeometry(1, 1, 1);
+    let material = new THREE.MeshPhongMaterial({ color: 0x44dd77, opacity: 0.9, transparent: true });
     scoreScene.cube = new THREE.Mesh(geometry, material);
     this.scoreCubesToScores.set(scoreScene.cube, score)
 
-    this.updateScoreHeight(score, this.games.length);
+    this.updateScoreHeight(score, score.games.length, score.games.length, x => "#44dd77");
     this.disableScore(score);
   }
 
@@ -170,10 +174,12 @@ class UI {
     return geometry;
   }
 
-  updateScoreHeight (score, height) {
+  updateScoreHeight (score, height, games, toColor) {
     let scoreScene = this.scoreScenes.get(score);
     scoreScene.cube.geometry.dispose();
     scoreScene.cube.geometry = this.makeColumn(height);
+    scoreScene.cube.material.dispose();
+    scoreScene.cube.material = new THREE.MeshPhongMaterial({ color: toColor(games), opacity: 0.9, transparent: true });
     scoreScene.cube.position.x = score.games[0].pts_win + this.gaps;
     scoreScene.cube.position.z = score.games[0].pts_lose + this.gaps;
     this.scene.add(scoreScene.cube);
@@ -429,14 +435,24 @@ class UI {
         let firstGame = score.firstAfter(lowerGame);
         let lastGame = score.lastBefore(upperGame);
         let gamesBetween = firstGame == null || lastGame == null ? 0 : lastGame.nth_of_score - firstGame.nth_of_score + 1;
+        let scoreScene = this.scoreScenes.get(score);
+        scoreScene.gamesBetween = gamesBetween;
+      }
 
-        if (gamesBetween <= 0) {
+      let allGamesBetween = Object.values(this.games.scores).map(score => this.scoreScenes.get(score).gamesBetween).filter(g => g != 0);
+      let maxGamesBetween = allGamesBetween.reduce((x, y) => Math.max(x, y), 0);
+      let limits = chroma.limits(allGamesBetween, 'q', 4);
+      let toColor = games => chroma.scale(['blue', 'cyan', 'lime', 'yellow', 'red']).domain(limits)(games).hex();
+
+      for (let score of Object.values(this.games.scores)) {
+        let scoreScene = this.scoreScenes.get(score);
+        if (scoreScene.gamesBetween <= 0) {
           this.disableScore(score);
         } else {
           let scoreScene = this.scoreScenes.get(score);
-          if (scoreScene.lastSetHeight != gamesBetween || zScaleChanged) {
-            scoreScene.lastSetHeight = gamesBetween;
-            this.updateScoreHeight(score, gamesBetween * this.zScale);
+          if (scoreScene.lastSetHeight != scoreScene.gamesBetween || zScaleChanged) {
+            scoreScene.lastSetHeight = scoreScene.gamesBetween;
+            this.updateScoreHeight(score, this.zScale == 0 ? 0.01 : scoreScene.gamesBetween * this.zScale, scoreScene.gamesBetween, toColor);
           }
         }
       }
