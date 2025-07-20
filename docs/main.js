@@ -161,7 +161,7 @@ class UI {
   }
 
   makeColumn (height) {
-    let geometry = new THREE.BoxGeometry(this.columnWidth, this.zScale * height, this.columnWidth);
+    let geometry = new THREE.BoxGeometry(this.columnWidth, height, this.columnWidth);
     geometry.translate(
       geometry.parameters.width / 2,
       geometry.parameters.height / 2,
@@ -172,15 +172,10 @@ class UI {
 
   updateScoreHeight (score, height) {
     let scoreScene = this.scoreScenes.get(score);
-    if (scoreScene.lastSetHeight == height) {
-      // Nothing to do
-    } else {
-      scoreScene.lastSetHeight = height;
-      scoreScene.cube.geometry.dispose();
-      scoreScene.cube.geometry = this.makeColumn(height);
-      scoreScene.cube.position.x = score.games[0].pts_win + this.gaps;
-      scoreScene.cube.position.z = score.games[0].pts_lose + this.gaps;
-    }
+    scoreScene.cube.geometry.dispose();
+    scoreScene.cube.geometry = this.makeColumn(height);
+    scoreScene.cube.position.x = score.games[0].pts_win + this.gaps;
+    scoreScene.cube.position.z = score.games[0].pts_lose + this.gaps;
     this.scene.add(scoreScene.cube);
   }
 
@@ -218,9 +213,8 @@ class UI {
   constructor () {
     this.gaps = 0.1;
     this.zScale = 0.25;
-    this.lastUpperGame = null;
-    this.lastLowerGame = null;
     this.lastShowHeight = null;
+    this.lastCutoff = [null, null];
 
     this.scene = new THREE.Scene();
     const color = new THREE.Color().setHex(0xdddddd);
@@ -266,6 +260,8 @@ class UI {
       this.gameCursor.geometry,
       this.gameCursor.material
     );
+
+    this.showHeight = true;
   }
 
   initialize (games) {
@@ -368,7 +364,11 @@ class UI {
       rangeColor: '#44dd77',
       rangeActiveColor: '#44dd77',
       minSpan: 0,
-      //bgColor: '#44dd77',
+    });
+
+    this.cutoff = this.sliderBounds();
+    this.sliderEl.addEventListener("update", () => {
+      this.cutoff = this.sliderBounds();
     });
   }
 
@@ -383,11 +383,22 @@ class UI {
     ];
   }
 
-  activateColumns (cutoff, showHeight) {
-    let lowerGame = cutoff[0] == 0 ? null : this.games.all[cutoff[0] - 1];
-    let upperGame = cutoff[1] == 0 ? null : this.games.all[cutoff[1] - 1];
+  activateColumns () {
+    let [lastLowerCutoff, lastUpperCutoff] = this.lastCutoff;
+    let [lowerCutoff, upperCutoff] = this.cutoff;
 
-    if (upperGame != this.lastUpperGame || lowerGame != this.lastLowerGame || this.lastShowHeight != showHeight) {
+    let lowerCutoffChanged = lastLowerCutoff != lowerCutoff;
+    let upperCutoffChanged = lastUpperCutoff != upperCutoff;
+    let showHeightChanged = this.lastShowHeight != this.showHeight;
+
+    if (lowerCutoffChanged || upperCutoffChanged || showHeightChanged) {
+      console.log(lowerCutoffChanged, upperCutoffChanged, showHeightChanged);
+      let lowerGame = this.cutoff[0] == 0 ? null : this.games.all[this.cutoff[0] - 1];
+      let upperGame = this.cutoff[1] == 0 ? null : this.games.all[this.cutoff[1] - 1];
+
+      this.lastCutoff = [lowerCutoff, upperCutoff];
+      this.lastShowHeight = this.showHeight;
+
       this.disableCursor();
 
       let gameInfoBox = document.getElementById("game");
@@ -405,15 +416,15 @@ class UI {
         if (gamesBetween <= 0) {
           this.disableScore(score);
         } else {
-          let height = showHeight ? gamesBetween : 1;
-          this.updateScoreHeight(score, height);
+          let newHeight = this.showHeight ? gamesBetween : 1;
+          let scoreScene = this.scoreScenes.get(score);
+          if (scoreScene.lastSetHeight != newHeight) {
+            scoreScene.lastSetHeight = newHeight;
+            this.updateScoreHeight(score, newHeight * this.zScale);
+          }
         }
       }
     }
-
-    this.lastUpperGame = upperGame;
-    this.lastLowerGame = lowerGame;
-    this.lastShowHeight = showHeight;
   }
 }
 
@@ -430,7 +441,7 @@ let showHeightEl = document.getElementById('showHeight');
 showHeightEl.checked = true;
 let shouldShowHeight = showHeightEl.checked;
 showHeightEl.addEventListener('change', e => {
-  shouldShowHeight = e.srcElement.checked;
+  ui.showHeight = e.srcElement.checked;
 });
 
 let leagues = {
