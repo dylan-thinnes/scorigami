@@ -1,6 +1,6 @@
 import { rawGames as rawGamesNFL } from './raw-games-nfl.js';
 import { rawGames as rawGamesCFL } from './raw-games-cfl.js';
-import { rawGames as rawGamesCollege } from './raw-games-college.js';
+import { rawGames as rawGamesNCAAF } from './raw-games-ncaaf.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
@@ -109,7 +109,7 @@ class Games {
 
 const allGamesNFL = new Games(rawGamesNFL);
 const allGamesCFL = new Games(rawGamesCFL);
-const allGamesCollege = new Games(rawGamesCollege);
+const allGamesNCAAF = new Games(rawGamesNCAAF);
 
 class PickHelper {
   constructor (ui) {
@@ -455,7 +455,7 @@ ui.controls.target.set(37.48, 34.29, 6.73);
 let leagues = {
   'league-nfl': allGamesNFL,
   'league-cfl': allGamesCFL,
-  'league-college': allGamesCollege,
+  'league-ncaaf': allGamesNCAAF,
 };
 let currentLeague = 'league-nfl';
 ui.initialize(leagues[currentLeague]);
