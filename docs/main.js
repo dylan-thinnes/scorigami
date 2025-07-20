@@ -212,8 +212,9 @@ class UI {
 
   constructor () {
     this.gaps = 0.1;
+    this.lastZScale = null;
     this.zScale = 0.25;
-    this.lastShowHeight = null;
+
     this.lastCutoff = [null, null];
 
     this.scene = new THREE.Scene();
@@ -261,7 +262,24 @@ class UI {
       this.gameCursor.material
     );
 
-    this.showHeight = true;
+    this.zScaleSlider = new DualHRangeBar("zScale", {
+      size: 'default',
+      lowerBound: 0,
+      upperBound: 1,
+      lower: 0.25,
+      upper: 0.25,
+      sliderColor: '#1ac360',
+      sliderActiveColor: '#00aa49',
+      rangeColor: '#44dd77',
+      rangeActiveColor: '#00aa49',
+      bgColor: '#44dd77',
+      minSpan: 0.0001,
+      maxSpan: 0.0001,
+    });
+
+    this.zScaleSlider.container.addEventListener("update", () => {
+      this.zScale = this.zScaleSlider.lower;
+    });
   }
 
   initialize (games) {
@@ -362,7 +380,7 @@ class UI {
       sliderColor: '#1ac360',
       sliderActiveColor: '#00aa49',
       rangeColor: '#44dd77',
-      rangeActiveColor: '#44dd77',
+      rangeActiveColor: '#00aa49',
       minSpan: 0,
     });
 
@@ -389,15 +407,15 @@ class UI {
 
     let lowerCutoffChanged = lastLowerCutoff != lowerCutoff;
     let upperCutoffChanged = lastUpperCutoff != upperCutoff;
-    let showHeightChanged = this.lastShowHeight != this.showHeight;
+    let zScaleChanged = this.lastZScale != this.zScale;
 
-    if (lowerCutoffChanged || upperCutoffChanged || showHeightChanged) {
-      console.log(lowerCutoffChanged, upperCutoffChanged, showHeightChanged);
+    if (lowerCutoffChanged || upperCutoffChanged || zScaleChanged) {
+      console.log(lowerCutoffChanged, upperCutoffChanged, zScaleChanged);
       let lowerGame = this.cutoff[0] == 0 ? null : this.games.all[this.cutoff[0] - 1];
       let upperGame = this.cutoff[1] == 0 ? null : this.games.all[this.cutoff[1] - 1];
 
       this.lastCutoff = [lowerCutoff, upperCutoff];
-      this.lastShowHeight = this.showHeight;
+      this.lastZScale = this.zScale;
 
       this.disableCursor();
 
@@ -416,9 +434,9 @@ class UI {
         if (gamesBetween <= 0) {
           this.disableScore(score);
         } else {
-          let newHeight = this.showHeight ? gamesBetween : 1;
+          let newHeight = gamesBetween;
           let scoreScene = this.scoreScenes.get(score);
-          if (scoreScene.lastSetHeight != newHeight) {
+          if (scoreScene.lastSetHeight != newHeight || zScaleChanged) {
             scoreScene.lastSetHeight = newHeight;
             this.updateScoreHeight(score, newHeight * this.zScale);
           }
@@ -429,20 +447,12 @@ class UI {
 }
 
 const ui = new UI();
-ui.initialize(allGamesNFL);
-ui.initialize(allGamesCFL);
+window.ui = ui;
 
 ui.camera.position.x = -23;
 ui.camera.position.y = 75;
 ui.camera.position.z = 40;
 ui.controls.target.set(37.48, 34.29, 6.73);
-
-let showHeightEl = document.getElementById('showHeight');
-showHeightEl.checked = true;
-let shouldShowHeight = showHeightEl.checked;
-showHeightEl.addEventListener('change', e => {
-  ui.showHeight = e.srcElement.checked;
-});
 
 let leagues = {
   'league-nfl': allGamesNFL,
@@ -467,7 +477,7 @@ function animate() {
   ui.renderer.render(ui.scene, ui.camera);
   ui.controls.update();
   pickHelper.pick(pickPosition);
-  ui.activateColumns(ui.sliderBounds(), shouldShowHeight);
+  ui.activateColumns();
 }
 ui.renderer.setAnimationLoop( animate );
 

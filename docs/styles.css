@@ -96,3 +96,17 @@ body {
   border-style: solid;
   border-color: #aaa;
 }
+
+#zScaleContainer {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+#zScale {
+  flex: 1 1 auto;
+  position: relative;
+  margin: 10px;
+}
