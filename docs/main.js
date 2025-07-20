@@ -410,7 +410,6 @@ class UI {
     let zScaleChanged = this.lastZScale != this.zScale;
 
     if (lowerCutoffChanged || upperCutoffChanged || zScaleChanged) {
-      console.log(lowerCutoffChanged, upperCutoffChanged, zScaleChanged);
       let lowerGame = this.cutoff[0] == 0 ? null : this.games.all[this.cutoff[0] - 1];
       let upperGame = this.cutoff[1] == 0 ? null : this.games.all[this.cutoff[1] - 1];
 
@@ -434,11 +433,10 @@ class UI {
         if (gamesBetween <= 0) {
           this.disableScore(score);
         } else {
-          let newHeight = gamesBetween;
           let scoreScene = this.scoreScenes.get(score);
-          if (scoreScene.lastSetHeight != newHeight || zScaleChanged) {
-            scoreScene.lastSetHeight = newHeight;
-            this.updateScoreHeight(score, newHeight * this.zScale);
+          if (scoreScene.lastSetHeight != gamesBetween || zScaleChanged) {
+            scoreScene.lastSetHeight = gamesBetween;
+            this.updateScoreHeight(score, gamesBetween * this.zScale);
           }
         }
       }
