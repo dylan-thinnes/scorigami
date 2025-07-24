@@ -49,21 +49,23 @@
     <div id="info" class="ui-container">
       <span id="game"></span>
     </div>
-    <div id="settings-tab">
-      <div id="settings-toggler" class="ui-container">SETTINGS</div>
-      <div id="settings-box" class="ui-container">
+    <div id="settings-tab" class="ui-container">
+      <div id="settings-toggler">SETTINGS</div>
+      <div id="settings-box">
         <div>
           <!--<input type="checkbox" id="showHeight" name="showHeight" /> <label for="showHeight">Scale height</label>
           <br/>-->
           <div id="zScaleContainer">
-            <span>zScale&nbsp;</span>
+            <span style="padding-right: 10px;">zScale</span>
             <div id="zScale">
             </div>
           </div>
           League<br/>
-          <label for="league-nfl"><input type="radio" class="league" id="league-nfl" name="league" value="nfl" />NFL</label>
-          <label for="league-cfl"><input type="radio" class="league" id="league-cfl" name="league" value="cfl" />CFL</label>
-          <label for="league-ncaaf"><input type="radio" class="league" id="league-ncaaf" name="league" value="ncaaf" />NCAAF</label>
+          <div id="leagues">
+            <input class="league-radio" type="radio" id="league-nfl" name="league" value="nfl" /><label class="league" for="league-nfl">NFL</label>
+            <input class="league-radio" type="radio" id="league-cfl" name="league" value="cfl" /><label class="league" for="league-cfl">CFL</label>
+            <input class="league-radio" type="radio" id="league-ncaaf" name="league" value="ncaaf" /><label class="league" for="league-ncaaf">NCAAF</label>
+          </div>
         </div>
       </div>
     </div>

@@ -475,7 +475,7 @@ let leagues = {
 };
 let currentLeague = 'league-nfl';
 ui.initialize(leagues[currentLeague]);
-let leagueEls = [...document.getElementsByClassName('league')];
+let leagueEls = [...document.getElementsByClassName('league-radio')];
 for (let leagueEl of leagueEls) {
   leagueEl.checked = leagueEl.id == "league-nfl";
   leagueEl.addEventListener('change', e => {

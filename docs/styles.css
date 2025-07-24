@@ -31,7 +31,6 @@ body {
 #settings-toggler:hover {
   background-color: #888;
 }
-
 #settings-toggler:active {
   background-color: #666;
 }
@@ -41,18 +40,12 @@ body {
   writing-mode: vertical-rl;
   transform: rotate(-180deg);
   height: 100%;
-  border-width: 1px 1px 1px 0px;
   cursor: pointer;
-  border-style: solid;
-  border-color: #aaa;
 }
 
 #settings-box {
-  border-style: solid;
-  border-color: #aaa;
-  border-width: 1px 0 1px 0px;
   height: 100%;
-  transition: width 0.5s linear;
+  transition: width 0.5s linear, margin-left 0.5s linear;
   width: 0px;
   overflow-x: hidden;
 }
@@ -63,6 +56,7 @@ body {
 
 #settings-box.open {
   width: 15rem;
+  margin-left: 5px;
 }
 
 #controls {
@@ -109,4 +103,27 @@ body {
   flex: 1 1 auto;
   position: relative;
   margin: 10px;
+}
+
+#leagues {
+  display: flex;
+  flex-direction: row;
+}
+#leagues > input {
+  display: none;
+}
+#leagues > .league {
+  width: 0px;
+  flex: 1 1 auto;
+  text-align: center;
+  cursor: pointer;
+}
+.league:hover {
+  background-color: #888;
+}
+.league:active {
+  background-color: #666;
+}
+input:checked + .league {
+  background-color: #00aa49;
 }
