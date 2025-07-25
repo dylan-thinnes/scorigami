@@ -110,12 +110,12 @@ body {
   margin: 10px;
 }
 
-#leagues, #heatmap-buttons, #normalize-zscale {
+.selector-row {
   display: flex;
   flex-direction: row;
   margin-top: 5px;
 }
-#heatmap-sign, #normalize-zscale-sign, #leagues-sign {
+.selector-sign {
   padding-right: 10px;
   flex: 0 0 auto;
 }
