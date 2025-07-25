@@ -219,7 +219,7 @@ class UI {
   constructor () {
     this.gaps = 0.1;
     this.lastZScale = null;
-    this.zScale = 0.25;
+    this.zScale = 0.5;
     this.lastHeatmap = null;
     this.heatmap = true;
 
@@ -270,12 +270,12 @@ class UI {
       this.gameCursor.material
     );
 
-    this.zScaleSlider = new DualHRangeBar("zScale", {
+    this.zScaleSlider = new DualHRangeBar("zscale", {
       size: 'default',
       lowerBound: 0,
       upperBound: 1,
-      lower: 0.25,
-      upper: 0.25,
+      lower: this.zScale,
+      upper: this.zScale,
       sliderColor: '#1ac360',
       sliderActiveColor: '#00aa49',
       rangeColor: '#44dd77',
@@ -303,6 +303,11 @@ class UI {
     this.scoreCubesToScores = new Map();
     for (let score of Object.values(this.games.scores)) {
       this.initializeScore(score);
+    }
+
+    this.highestGamesPerScore = 0;
+    for (let score of Object.values(this.games.scores)) {
+      this.highestGamesPerScore = Math.max(score.games.length, this.highestGamesPerScore);
     }
 
     if (this.winAxisScoreBoxes != null) {
@@ -373,7 +378,7 @@ class UI {
       this.scene.add(greyTile);
     }
 
-    let sliderContainer = document.getElementById("sliderContainer");
+    let sliderContainer = document.getElementById("slider-container");
     if (this.sliderEl != null) {
       sliderContainer.removeChild(this.sliderEl);
     }
@@ -462,7 +467,7 @@ class UI {
           let scoreScene = this.scoreScenes.get(score);
           if (scoreScene.lastSetHeight != scoreScene.gamesBetween || zScaleChanged || heatmapChanged || this.heatmap) {
             scoreScene.lastSetHeight = scoreScene.gamesBetween;
-            this.updateScoreHeight(score, this.zScale == 0 ? 0.01 : scoreScene.gamesBetween * this.zScale, scoreScene.gamesBetween, toColor(scoreScene.gamesBetween));
+            this.updateScoreHeight(score, this.zScale == 0 ? 0.01 : 150 * (scoreScene.gamesBetween / this.highestGamesPerScore) * this.zScale, scoreScene.gamesBetween, toColor(scoreScene.gamesBetween));
           }
         }
       }
@@ -498,6 +503,7 @@ for (let leagueEl of leagueEls) {
 
 let heatmapEls = [...document.getElementsByClassName('heatmap-radio')];
 for (let heatmapEl of heatmapEls) {
+  ui.heatmap = heatmapEl.checked && heatmapEl.id == "heatmap-yes";
   heatmapEl.addEventListener('change', e => {
     ui.heatmap = e.srcElement.id == "heatmap-yes";
   });

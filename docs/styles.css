@@ -45,18 +45,23 @@ body {
 
 #settings-box {
   height: 100%;
-  transition: width 0.5s linear, margin-left 0.5s linear;
+  transition: width 0.5s linear, margin-left 0.5s linear, margin-right 0.5s linear;
   width: 0px;
   overflow-x: hidden;
 }
 
 #settings-box > div {
-  width: 15rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 20rem;
+  height: 100%;
 }
 
 #settings-box.open {
-  width: 15rem;
+  width: 20rem;
   margin-left: 5px;
+  margin-right: 5px;
 }
 
 #controls {
@@ -70,7 +75,7 @@ body {
   align-items: center;
 }
 
-#controls #sliderContainer {
+#controls #slider-container {
   width: 20px;
   height: 85%;
 }
@@ -80,7 +85,7 @@ body {
   height: 100%;
 }
 
-#controls #sliderContainer #slider .ui-widget-header {
+#controls #slider-container #slider .ui-widget-header {
   background-color: #44dd77;
 }
 
@@ -91,7 +96,7 @@ body {
   border-color: #aaa;
 }
 
-#zScaleContainer {
+#zscale-container {
   position: relative;
   display: flex;
   flex-direction: row;
@@ -99,18 +104,18 @@ body {
   align-items: center;
 }
 
-#zScale {
+#zscale {
   flex: 1 1 auto;
   position: relative;
   margin: 10px;
 }
 
-#leagues, #heatmap-buttons {
+#leagues, #heatmap-buttons, #normalize-zscale {
   display: flex;
   flex-direction: row;
   margin-top: 5px;
 }
-#heatmap-sign {
+#heatmap-sign, #normalize-zscale-sign, #leagues-sign {
   padding-right: 10px;
   flex: 0 0 auto;
 }
