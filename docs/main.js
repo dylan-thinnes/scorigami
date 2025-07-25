@@ -439,10 +439,10 @@ class UI {
         scoreScene.gamesBetween = gamesBetween;
       }
 
-      let allGamesBetween = Object.values(this.games.scores).map(score => this.scoreScenes.get(score).gamesBetween).filter(g => g != 0);
+      let allGamesBetween = Object.values(this.games.scores).map(score => this.scoreScenes.get(score).gamesBetween).filter(g => g > 1);
       let maxGamesBetween = allGamesBetween.reduce((x, y) => Math.max(x, y), 0);
-      let limits = chroma.limits(allGamesBetween, 'q', 4);
-      let toColor = games => chroma.scale(['blue', 'cyan', 'lime', 'yellow', 'red']).domain(limits)(games).hex();
+      let limits = chroma.limits(allGamesBetween, 'q', 3);
+      let toColor = gamesBetween => gamesBetween < 2 ? "blue" : chroma.scale(['00b4ff', 'lime', 'yellow', 'red']).domain(limits)(gamesBetween).hex();
 
       for (let score of Object.values(this.games.scores)) {
         let scoreScene = this.scoreScenes.get(score);
@@ -450,7 +450,7 @@ class UI {
           this.disableScore(score);
         } else {
           let scoreScene = this.scoreScenes.get(score);
-          if (scoreScene.lastSetHeight != scoreScene.gamesBetween || zScaleChanged) {
+          if (scoreScene.lastSetHeight != scoreScene.gamesBetween || zScaleChanged || true) {
             scoreScene.lastSetHeight = scoreScene.gamesBetween;
             this.updateScoreHeight(score, this.zScale == 0 ? 0.01 : scoreScene.gamesBetween * this.zScale, scoreScene.gamesBetween, toColor);
           }
