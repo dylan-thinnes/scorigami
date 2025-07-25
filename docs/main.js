@@ -156,7 +156,7 @@ class UI {
 
     // placeholder geometry & material until updateScoreHeight runs
     let geometry = new THREE.BoxGeometry(1, 1, 1);
-    let material = new THREE.MeshPhongMaterial({ color: 0x44dd77, opacity: 0.9, transparent: true });
+    let material = new THREE.MeshPhongMaterial({ color: "#44dd77", opacity: 0.9, transparent: true });
     scoreScene.cube = new THREE.Mesh(geometry, material);
     this.scoreCubesToScores.set(scoreScene.cube, score)
 
@@ -174,12 +174,12 @@ class UI {
     return geometry;
   }
 
-  updateScoreHeight (score, height, games, toColor) {
+  updateScoreHeight (score, height, games, color) {
     let scoreScene = this.scoreScenes.get(score);
     scoreScene.cube.geometry.dispose();
     scoreScene.cube.geometry = this.makeColumn(height);
     scoreScene.cube.material.dispose();
-    scoreScene.cube.material = new THREE.MeshPhongMaterial({ color: toColor(games), opacity: 0.9, transparent: true });
+    scoreScene.cube.material = new THREE.MeshPhongMaterial({ color, opacity: 0.9, transparent: true });
     scoreScene.cube.position.x = score.games[0].pts_win + this.gaps;
     scoreScene.cube.position.z = score.games[0].pts_lose + this.gaps;
     this.scene.add(scoreScene.cube);
@@ -220,6 +220,8 @@ class UI {
     this.gaps = 0.1;
     this.lastZScale = null;
     this.zScale = 0.25;
+    this.lastHeatmap = null;
+    this.heatmap = true;
 
     this.lastCutoff = [null, null];
 
@@ -414,13 +416,15 @@ class UI {
     let lowerCutoffChanged = lastLowerCutoff != lowerCutoff;
     let upperCutoffChanged = lastUpperCutoff != upperCutoff;
     let zScaleChanged = this.lastZScale != this.zScale;
+    let heatmapChanged = this.lastHeatmap != this.heatmap;
 
-    if (lowerCutoffChanged || upperCutoffChanged || zScaleChanged) {
+    if (lowerCutoffChanged || upperCutoffChanged || zScaleChanged || heatmapChanged) {
       let lowerGame = this.cutoff[0] == 0 ? null : this.games.all[this.cutoff[0] - 1];
       let upperGame = this.cutoff[1] == 0 ? null : this.games.all[this.cutoff[1] - 1];
 
       this.lastCutoff = [lowerCutoff, upperCutoff];
       this.lastZScale = this.zScale;
+      this.lastHeatmap = this.heatmap;
 
       this.disableCursor();
 
@@ -441,8 +445,14 @@ class UI {
 
       let allGamesBetween = Object.values(this.games.scores).map(score => this.scoreScenes.get(score).gamesBetween).filter(g => g > 1);
       let maxGamesBetween = allGamesBetween.reduce((x, y) => Math.max(x, y), 0);
-      let limits = chroma.limits(allGamesBetween, 'q', 3);
-      let toColor = gamesBetween => gamesBetween < 2 ? "blue" : chroma.scale(['00b4ff', 'lime', 'yellow', 'red']).domain(limits)(gamesBetween).hex();
+      let toColor = _ => "#44dd77";
+      if (this.heatmap) {
+        let limits = chroma.limits(allGamesBetween, 'q', 3);
+        toColor = gamesBetween =>
+          gamesBetween <= 1
+            ? "blue"
+            : chroma.scale(['00b4ff', 'lime', 'yellow', 'red']).domain(limits)(gamesBetween).hex()
+      }
 
       for (let score of Object.values(this.games.scores)) {
         let scoreScene = this.scoreScenes.get(score);
@@ -450,9 +460,9 @@ class UI {
           this.disableScore(score);
         } else {
           let scoreScene = this.scoreScenes.get(score);
-          if (scoreScene.lastSetHeight != scoreScene.gamesBetween || zScaleChanged || true) {
+          if (scoreScene.lastSetHeight != scoreScene.gamesBetween || zScaleChanged || heatmapChanged || this.heatmap) {
             scoreScene.lastSetHeight = scoreScene.gamesBetween;
-            this.updateScoreHeight(score, this.zScale == 0 ? 0.01 : scoreScene.gamesBetween * this.zScale, scoreScene.gamesBetween, toColor);
+            this.updateScoreHeight(score, this.zScale == 0 ? 0.01 : scoreScene.gamesBetween * this.zScale, scoreScene.gamesBetween, toColor(scoreScene.gamesBetween));
           }
         }
       }
@@ -483,6 +493,13 @@ for (let leagueEl of leagueEls) {
       currentLeague = e.srcElement.id;
       ui.initialize(leagues[currentLeague]);
     }
+  });
+}
+
+let heatmapEls = [...document.getElementsByClassName('heatmap-radio')];
+for (let heatmapEl of heatmapEls) {
+  heatmapEl.addEventListener('change', e => {
+    ui.heatmap = e.srcElement.id == "heatmap-yes";
   });
 }
 

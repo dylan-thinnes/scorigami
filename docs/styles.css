@@ -105,25 +105,31 @@ body {
   margin: 10px;
 }
 
-#leagues {
+#leagues, #heatmap-buttons {
   display: flex;
   flex-direction: row;
+  margin-top: 5px;
 }
-#leagues > input {
+#heatmap-sign {
+  padding-right: 10px;
+  flex: 0 0 auto;
+}
+
+.radio-selector {
   display: none;
 }
-#leagues > .league {
+.radio-label {
   width: 0px;
   flex: 1 1 auto;
   text-align: center;
   cursor: pointer;
 }
-.league:hover {
+.radio-label:hover {
   background-color: #888;
 }
-.league:active {
+.radio-label:active {
   background-color: #666;
 }
-input:checked + .league {
+.radio-selector:checked + .radio-label {
   background-color: #00aa49;
 }
