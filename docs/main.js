@@ -503,9 +503,12 @@ for (let leagueEl of leagueEls) {
 
 let heatmapEls = [...document.getElementsByClassName('heatmap-radio')];
 for (let heatmapEl of heatmapEls) {
-  ui.heatmap = heatmapEl.checked && heatmapEl.id == "heatmap-yes";
+  ui.heatmap = true;
+  if (heatmapEl.id == "heatmap-yes") {
+    heatmapEl.checked = true;
+  }
   heatmapEl.addEventListener('change', e => {
-    ui.heatmap = e.srcElement.id == "heatmap-yes";
+    ui.heatmap = e.srcElement.checked == (e.srcElement.id == "heatmap-yes");
   });
 }
 
@@ -556,6 +559,7 @@ window.addEventListener('mousemove', setPickPosition);
 window.addEventListener('mouseout', clearPickPosition);
 window.addEventListener('mouseleave', clearPickPosition);
 
-document.getElementById('settings-toggler').addEventListener('click', () => {
+let settingsToggler = document.getElementById('settings-toggler');
+settingsToggler.addEventListener('click', () => {
   document.getElementById('settings-box').classList.toggle('open');
 });

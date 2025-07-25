@@ -11,12 +11,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: 1.5rem;
+  font-size: 30pt;
   border-width: 0 0 1px 0;
 }
 
 #settings-tab {
-  font-size: 1.5rem;
+  font-size: 40pt;
   position: absolute;
   bottom: 3rem;
   right: 0;
@@ -28,8 +28,20 @@ body {
   font-weight: bold;
 }
 
-#settings-toggler:hover {
-  background-color: #888;
+#settings-tab * {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+}
+
+@media (hover: hover) {
+  #settings-toggler:hover {
+    background-color: #888;
+  }
 }
 #settings-toggler:active {
   background-color: #666;
@@ -54,12 +66,12 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  width: 20rem;
+  width: 500pt;
   height: 100%;
 }
 
 #settings-box.open {
-  width: 20rem;
+  width: 500pt;
   margin-left: 5px;
   margin-right: 5px;
 }
@@ -76,13 +88,18 @@ body {
 }
 
 #controls #slider-container {
-  width: 20px;
+  width: 50px;
   height: 85%;
 }
 
 #slider {
   position: relative;
   height: 100%;
+  --slider-wh: 50px;
+  --range-thick: 45px;
+  --bg-thick: 40px;
+  --mini-thick: 8px;
+  --mini-ratio: calc(8/15);
 }
 
 #controls #slider-container #slider .ui-widget-header {
@@ -108,6 +125,14 @@ body {
   flex: 1 1 auto;
   position: relative;
   margin: 10px;
+}
+
+#zscale {
+  --slider-wh: 50px;
+  --range-thick: 45px;
+  --bg-thick: 40px;
+  --mini-thick: 8px;
+  --mini-ratio: calc(8/15);
 }
 
 .selector-row {
